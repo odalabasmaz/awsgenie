@@ -58,10 +58,12 @@ public class ResourceTerminator {
                 .build();
 
         if (StringUtils.isNotBlank(request.getAssumeRoleArn())) {
-            return new STSAssumeRoleSessionCredentialsProvider
+            STSAssumeRoleSessionCredentialsProvider credentialsProvider = new STSAssumeRoleSessionCredentialsProvider
                     .Builder(request.getAssumeRoleArn(), getSTSSessionName())
                     .withStsClient(stsClient)
                     .build();
+            LOGGER.info("Using assumed role: " + request.getAssumeRoleArn());
+            return credentialsProvider;
         }
 
         return null;
