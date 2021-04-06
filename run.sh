@@ -19,9 +19,6 @@ while getopts ":b:u" opt; do
       unset AWS_ROLE_NAME
       shift
       ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      ;;
   esac
 done
 
