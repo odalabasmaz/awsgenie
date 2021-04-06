@@ -19,6 +19,10 @@ public class TerminateResourceFactory {
             return new TerminateLambdaResources(credentialsProvider);
         } else if ("dynamodb".equalsIgnoreCase(service)) {
             return new TerminateDynamoDBResources(credentialsProvider);
+        } else if ("role".equalsIgnoreCase(service)) {
+            return new TerminateIamRoleResources(credentialsProvider);
+        } else if ("policy".equalsIgnoreCase(service)) {
+            return new TerminateIamPolicyResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);
         }
