@@ -45,7 +45,7 @@ public class ResourceTerminator {
         task.run(configuration, parameterConfiguration.isApply());
     }
 
-    public void run(Configuration configuration, boolean apply) throws Exception {
+    private void run(Configuration configuration, boolean apply) throws Exception {
         String region = configuration.getRegion();
         String service = configuration.getService();
         List<String> resources = configuration.getResourcesAsList();
