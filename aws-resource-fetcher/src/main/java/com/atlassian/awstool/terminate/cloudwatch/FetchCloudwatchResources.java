@@ -3,9 +3,9 @@ package com.atlassian.awstool.terminate.cloudwatch;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsResult;
-import com.amazonaws.services.cloudwatch.model.MetricAlarm;
+import com.amazonaws.services.cloudwatch.model.*;
+import com.amazonaws.services.identitymanagement.model.ListPoliciesRequest;
+import com.amazonaws.services.identitymanagement.model.ListPoliciesResult;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
@@ -30,8 +30,23 @@ public class FetchCloudwatchResources implements FetchResources {
         this.credentialsProvider = credentialsProvider;
     }
 
+
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public void listResources(String region, Consumer<List<?>> consumer) {
+        consume((nextMarker) -> {
+            AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+            ListMetricsResult listMetricsResult = cloudWatchClient.listMetrics(new ListMetricsRequest().withNextToken(nextMarker));
+            consumer.accept(listMetricsResult.getMetrics());
+            return listMetricsResult.getNextToken();
+        });
+    }
+
+    @Override
+    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)
@@ -60,8 +75,4 @@ public class FetchCloudwatchResources implements FetchResources {
         return cloudwatchResourceList;
     }
 
-    @Override
-    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
-
-    }
 }
