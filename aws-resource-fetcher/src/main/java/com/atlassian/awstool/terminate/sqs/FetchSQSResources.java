@@ -146,7 +146,7 @@ public class FetchSQSResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
 
         AmazonSQS sqsClient = AmazonSQSClient
                 .builder()

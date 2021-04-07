@@ -145,7 +145,7 @@ public class FetchLambdaResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
 
         AWSLambda lambdaClient = AWSLambdaClient
                 .builder()

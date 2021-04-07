@@ -46,7 +46,7 @@ public class FetchDynamodbResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
                 .builder()
                 .withRegion(region)

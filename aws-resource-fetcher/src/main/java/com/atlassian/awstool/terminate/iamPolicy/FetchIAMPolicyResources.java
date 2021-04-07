@@ -44,7 +44,7 @@ public class FetchIAMPolicyResources implements FetchResources {
 
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()

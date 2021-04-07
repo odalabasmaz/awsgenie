@@ -137,7 +137,7 @@ public class FetchSNSResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
 
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
