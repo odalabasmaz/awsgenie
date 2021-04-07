@@ -4,9 +4,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
-import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
-import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
-import com.amazonaws.services.identitymanagement.model.Role;
+import com.atlassian.awstool.terminate.FetchResourceFactory;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Orhun Dalabasmaz
  * @version 06.04.2021
- *
+ * <p>
  * Details: Required permissions: iam:ListRoles, iam:DeleteRole
  * TODO: add more...
  */
@@ -35,7 +35,7 @@ public class TerminateIamRoleResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region,
-                                  String service, List<String> resources, String ticket, boolean apply) {
+                                  String service, List<String> resources, String ticket, boolean apply) throws Exception {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
@@ -52,24 +52,17 @@ public class TerminateIamRoleResources implements TerminateResources {
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
-        for (String roleName : resources) {
-            try {
-                Role role = iamClient.getRole(new GetRoleRequest().withRoleName(roleName)).getRole();
-                Date lastUsedDate = role.getRoleLastUsed().getLastUsedDate();
-                if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
-                    details.add("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
-                    LOGGER.warn("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
-                    continue;
-                }
-                details.add("IAM Role will be deleted: [" + roleName + "]");
-                rolesToDelete.add(role.getRoleName());
-            } catch (NoSuchEntityException ex) {
-                details.add("!!! IAM Role not exists: [" + roleName + "]");
-                LOGGER.warn("!!! IAM Role not exists: [" + roleName + "]");
-            } /*catch (Exception ex) {
-                details.add("!!! Error occurred for: " + tableName);
-                LOGGER.error("Error occurred while processing dynamodb table: " + tableName, ex);
-            }*/
+        FetchResources fetcher = new FetchResourceFactory().getFetcher("iamRole", credentialsProvider);
+        List<IAMRoleResource> iamRoleResourceList = (List<IAMRoleResource>) fetcher.fetchResources(region, service, resources, details);
+
+        for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
+            if (iamRoleResource.getLastUsedDate() != null && iamRoleResource.getLastUsedDate().after(referenceDate)) {
+                details.add("IAM role seems in use, not deleting: [" + iamRoleResource.getResourceName() + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
+                LOGGER.warn("IAM role seems in use, not deleting: [" + iamRoleResource.getResourceName() + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
+                continue;
+            }
+            details.add("IAM Role will be deleted: [" + details + "]");
+            rolesToDelete.add(iamRoleResource.getResourceName());
         }
 
         StringBuilder info = new StringBuilder()

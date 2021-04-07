@@ -4,14 +4,13 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsResult;
-import com.amazonaws.services.cloudwatch.model.MetricAlarm;
+import com.atlassian.awstool.terminate.FetchResourceFactory;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,30 +29,22 @@ public class TerminateCloudwatchResources implements TerminateResources {
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) {
+    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)
                 .withCredentials(credentialsProvider)
                 .build();
 
-        // Resources to be removed
-        LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
+        FetchResources fetcher = new FetchResourceFactory().getFetcher("cloudwatch", credentialsProvider);
+        List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, service, resources, null);
 
-        // gather each alarm
-        String nextToken = null;
-        do {
-            DescribeAlarmsResult result = cloudWatchClient.describeAlarms(
-                    new DescribeAlarmsRequest().withAlarmNames(resources).withNextToken(nextToken));
-            result.getMetricAlarms()
-                    .stream()
-                    .map(MetricAlarm::getAlarmName)
-                    .forEach(cloudwatchAlarmsToDelete::add);
-            nextToken = result.getNextToken();
-        } while (nextToken != null);
-
+        Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);
-        cloudwatchAlarmsNotToDelete.removeAll(cloudwatchAlarmsToDelete);
+        for (CloudwatchResource cloudwatchResource : cloudwatchResourceList) {
+            cloudwatchAlarmsNotToDelete.remove(cloudwatchResource.getResourceName());
+            cloudwatchAlarmsToDelete.add(cloudwatchResource.getResourceName());
+        }
 
         StringBuilder info = new StringBuilder()
                 .append("The resources will be terminated regarding ").append(ticket).append("\n")

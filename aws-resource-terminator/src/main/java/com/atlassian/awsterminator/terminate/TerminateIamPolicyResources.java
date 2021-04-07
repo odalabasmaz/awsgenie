@@ -3,14 +3,20 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
-import com.amazonaws.services.identitymanagement.model.*;
+import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
+import com.atlassian.awstool.terminate.FetchResourceFactory;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,7 +37,7 @@ public class TerminateIamPolicyResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region,
-                                  String service, List<String> resources, String ticket, boolean apply) {
+                                  String service, List<String> resources, String ticket, boolean apply) throws Exception {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
@@ -51,7 +57,7 @@ public class TerminateIamPolicyResources implements TerminateResources {
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
-        for (String policyName : resources) {
+        /*for (String policyName : resources) {
             try {
                 String policyArn = generatePolicyArn(policyName);
                 Policy policy = iamClient.getPolicy(new GetPolicyRequest().withPolicyArn(policyArn)).getPolicy();
@@ -73,10 +79,19 @@ public class TerminateIamPolicyResources implements TerminateResources {
             } catch (NoSuchEntityException ex) {
                 details.add("!!! IAM Policy not exists: [" + policyName + "]");
                 LOGGER.warn("!!! IAM Policy not exists: [" + policyName + "]");
-            } /*catch (Exception ex) {
-                details.add("!!! Error occurred for: " + tableName);
-                LOGGER.error("Error occurred while processing dynamodb table: " + tableName, ex);
-            }*/
+            }
+        }*/
+
+        FetchResources fetcher = new FetchResourceFactory().getFetcher("iamPolicy", credentialsProvider);
+        List<IAMPolicyResource> iamPolicyResourceList = (List<IAMPolicyResource>) fetcher.fetchResources(region, service, resources, details);
+
+        for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
+            if (iamPolicyResource.getLastUsedDate() != null && iamPolicyResource.getLastUsedDate().after(referenceDate)) {
+                details.add("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(iamPolicyResource.getLastUsedDate()) + "]");
+                LOGGER.warn("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(iamPolicyResource.getLastUsedDate()) + "]");
+                continue;
+            }
+            policiesToDelete.add(iamPolicyResource.getResourceName());
         }
 
         StringBuilder info = new StringBuilder()

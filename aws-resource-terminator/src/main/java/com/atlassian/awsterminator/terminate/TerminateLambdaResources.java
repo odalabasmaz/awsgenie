@@ -1,25 +1,22 @@
 package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.policy.Policy;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.MetricAlarm;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClient;
 import com.amazonaws.services.cloudwatchevents.model.DeleteRuleRequest;
-import com.amazonaws.services.cloudwatchevents.model.ListTargetsByRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.RemoveTargetsRequest;
-import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClient;
-import com.amazonaws.services.lambda.model.*;
+import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
+import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.atlassian.awstool.terminate.FetchResourceFactory;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.lambda.LambdaResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,7 +39,7 @@ public class TerminateLambdaResources implements TerminateResources {
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) {
+    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
@@ -78,56 +75,17 @@ public class TerminateLambdaResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        // process each lambda
-        for (String lambdaName : resources) {
-            try {
-                GetFunctionResult function = lambdaClient.getFunction(new GetFunctionRequest().withFunctionName(lambdaName));
+        FetchResourceFactory fetchResourceFactory = new FetchResourceFactory();
+        FetchResources fetchResources = fetchResourceFactory.getFetcher("lambda", credentialsProvider);
+        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, service, resources, details);
 
-                // dynamodb triggers
-                List<EventSourceMappingConfiguration> eventSourceMappings = lambdaClient.listEventSourceMappings(new ListEventSourceMappingsRequest().withFunctionName(lambdaName)).getEventSourceMappings();
-                eventSourceMappings.stream().map(EventSourceMappingConfiguration::getUUID).forEach(eventSourceMappingsToDelete::add);
-
-                // sns & cw triggers
-                Policy policy = Policy.fromJson(lambdaClient.getPolicy(new GetPolicyRequest().withFunctionName(lambdaName)).getPolicy());
-                policy.getStatements().forEach(s -> {
-                    String sourceArn = s.getConditions().get(0).getValues().get(0);
-                    if (sourceArn.startsWith("arn:aws:sns:")) {
-                        snsClient.listSubscriptionsByTopic(sourceArn).getSubscriptions().stream()
-                                .filter(subs -> subs.getEndpoint().equals(function.getConfiguration().getFunctionArn()))
-                                .findFirst().ifPresent(subs -> snsTriggersToDelete.add(subs.getSubscriptionArn()));
-                    } else if (sourceArn.startsWith("arn:aws:events:")) {
-                        String ruleName = sourceArn.split("/")[1];
-                        List<Target> targets = cloudWatchEventsClient.listTargetsByRule(new ListTargetsByRuleRequest().withRule(ruleName)).getTargets();
-                        targets.stream()
-                                .filter(t -> t.getArn().equals(function.getConfiguration().getFunctionArn()))
-                                .forEach(t -> cloudwatchRuleTargetsToDelete.add(ruleName + ":" + t.getId()));
-                        if (targets.size() == 1) {
-                            cloudwatchRulesToDelete.add(ruleName);
-                        }
-                    } else {
-                        // unexpected trigger received
-                        throw new UnsupportedOperationException("Unsupported trigger found: " + sourceArn);
-                    }
-                });
-
-                // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix(region + " " + lambdaName + " Lambda "))
-                        .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
-                        .forEach(cloudwatchAlarmsToDelete::add);
-
-                // Add to delete list at last step if gathering the subscriptions fail
-                lambdasToDelete.add(lambdaName);
-
-                details.add(String.format("Resources info for: [%s], sns triggers: %s, event source mappings: %s, cw rules: %s, cw rule targets: %s, cw alarms: %s",
-                        lambdaName, snsTriggersToDelete, eventSourceMappingsToDelete, cloudwatchRulesToDelete, cloudwatchRuleTargetsToDelete, cloudwatchAlarmsToDelete));
-
-            } catch (ResourceNotFoundException ex) {
-                details.add("!!! Lambda resource not exists: " + lambdaName);
-                LOGGER.warn("Lambda resource not exists: " + lambdaName);
-            } /*catch (Exception ex) {
-                details.add("!!! Error occurred for: " + lambdaName);
-                LOGGER.error("Error occurred while processing lambda: " + lambdaName, ex);
-            }*/
+        for (LambdaResource lambdaResource : lambdaResourceList) {
+            lambdasToDelete.add(lambdaResource.getResourceName());
+            cloudwatchAlarmsToDelete.addAll(lambdaResource.getCloudwatchAlarmsToDelete());
+            snsTriggersToDelete.addAll(lambdaResource.getSnsTriggersToDelete());
+            cloudwatchRulesToDelete.addAll(lambdaResource.getCloudwatchRulesToDelete());
+            cloudwatchRuleTargetsToDelete.addAll(lambdaResource.getCloudwatchRuleTargetsToDelete());
+            eventSourceMappingsToDelete.addAll(lambdaResource.getCloudwatchRuleTargetsToDelete());
         }
 
         StringBuilder info = new StringBuilder()

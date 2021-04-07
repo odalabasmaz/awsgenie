@@ -25,6 +25,10 @@ public class TerminateResourceFactory {
             return new TerminateIamPolicyResources(credentialsProvider);
         } else if ("sns".equalsIgnoreCase(service)) {
             return new TerminateSnsResources(credentialsProvider);
+        } else if ("iamRole".equalsIgnoreCase(service)) {
+            return new TerminateIamRoleResources(credentialsProvider);
+        } else if ("iamPolicy".equalsIgnoreCase(service)) {
+            return new TerminateIamPolicyResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);
         }
