@@ -145,7 +145,7 @@ public class FetchLambdaResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
+    public void listResources(String region, Consumer<List<?>> consumer) {
 
         AWSLambda lambdaClient = AWSLambdaClient
                 .builder()
@@ -161,8 +161,7 @@ public class FetchLambdaResources implements FetchResources {
                 lambdaResourceNameList.add(functionConfiguration.getFunctionName());
             }
 
-            List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources(region, lambdaResourceNameList, Collections.emptyList());
-            consumer.accept(lambdaResourceList);
+            consumer.accept(lambdaResourceNameList);
             return listFunctionsResult.getNextMarker();
         });
     }

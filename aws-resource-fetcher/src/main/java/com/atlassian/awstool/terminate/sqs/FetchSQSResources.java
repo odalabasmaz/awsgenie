@@ -146,7 +146,7 @@ public class FetchSQSResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
+    public void listResources(String region, Consumer<List<?>> consumer) {
 
         AmazonSQS sqsClient = AmazonSQSClient
                 .builder()
@@ -162,8 +162,7 @@ public class FetchSQSResources implements FetchResources {
                 sqsResourceNameList.add(getQueueNameFromURL(queueUrl));
             }
 
-            List<SNSResource> snsResourceList = (List<SNSResource>) fetchResources(region, sqsResourceNameList, Collections.emptyList());
-            consumer.accept(snsResourceList);
+            consumer.accept(sqsResourceNameList);
             return listQueuesResult.getNextToken();
         });
     }

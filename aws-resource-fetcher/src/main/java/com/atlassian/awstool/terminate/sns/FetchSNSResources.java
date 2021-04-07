@@ -137,7 +137,7 @@ public class FetchSNSResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
+    public void listResources(String region, Consumer<List<?>> consumer) {
 
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
@@ -153,8 +153,7 @@ public class FetchSNSResources implements FetchResources {
                 snsResourceNameList.add(getResourceFromArn(topic.getTopicArn()));
             }
 
-            List<SNSResource> snsResourceList = (List<SNSResource>) fetchResources(region, snsResourceNameList, Collections.emptyList());
-            consumer.accept(snsResourceList);
+            consumer.accept(snsResourceNameList);
             return listTopicsResult.getNextToken();
         });
     }
