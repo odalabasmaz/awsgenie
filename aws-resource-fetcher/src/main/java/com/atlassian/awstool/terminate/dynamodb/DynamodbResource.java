@@ -9,6 +9,8 @@ public class DynamodbResource extends AWSResource {
     private double totalUsage = 0;
     private LinkedHashSet<String> cloudwatchAlarmList = new LinkedHashSet<>();
 
+
+
     @Override
     public String getResourceName() {
         return resourceName;

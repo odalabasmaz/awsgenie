@@ -11,10 +11,9 @@ import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -25,13 +24,27 @@ public class FetchIAMPolicyResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchIAMPolicyResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonIdentityManagement> iamClientMap;
 
     public FetchIAMPolicyResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.iamClientMap = new HashMap<>();
     }
 
+
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public void listResources(String region, Consumer<List<String>> consumer) {
+        consume((nextMarker) -> {
+            ListPoliciesResult listPoliciesResult = getIamClient(region).listPolicies(new ListPoliciesRequest().withMarker(nextMarker));
+            List<String> policyList = listPoliciesResult.getPolicies().stream().map(Policy::getPolicyName).collect(Collectors.toList());
+            consumer.accept(policyList);
+            return listPoliciesResult.getMarker();
+        });
+    }
+
+
+    @Override
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
@@ -69,7 +82,19 @@ public class FetchIAMPolicyResources implements FetchResources {
         return iamPolicyResourceList;
     }
 
+
     public static String generatePolicyArn(String policyName, String accountId) {
         return "arn:aws:iam::" + accountId + ":policy/" + policyName;
+    }
+
+    private AmazonIdentityManagement getIamClient(String region) {
+        if (iamClientMap.get(region) == null) {
+            iamClientMap.put(region, AmazonIdentityManagementClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return iamClientMap.get(region);
     }
 }

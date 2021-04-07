@@ -16,15 +16,15 @@ import com.amazonaws.services.sns.model.ListSubscriptionsResult;
 import com.amazonaws.services.sns.model.Subscription;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
+import com.amazonaws.services.sqs.model.*;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -36,13 +36,15 @@ public class FetchSQSResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchSQSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonSQS> sqsClientMap;
 
     public FetchSQSResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.sqsClientMap = new HashMap<>();
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AmazonSQSClient
                 .builder()
                 .withRegion(region)
@@ -143,5 +145,36 @@ public class FetchSQSResources implements FetchResources {
             }
         }
         return sqsResourceList;
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<String>> consumer) {
+
+        List<String> sqsResourceNameList = new ArrayList<>();
+
+        consume((String nextMarker) -> {
+            ListQueuesResult listQueuesResult = getSQSClient(region).listQueues(new ListQueuesRequest().withNextToken(nextMarker));
+            for (String queueUrl : listQueuesResult.getQueueUrls()) {
+                sqsResourceNameList.add(getQueueNameFromURL(queueUrl));
+            }
+
+            consumer.accept(sqsResourceNameList);
+            return listQueuesResult.getNextToken();
+        });
+    }
+
+    private String getQueueNameFromURL(String queueURL) {
+        return queueURL.substring(queueURL.lastIndexOf("/") + 1);
+    }
+
+    private AmazonSQS getSQSClient(String region) {
+        if (sqsClientMap.get(region) == null) {
+            sqsClientMap.put(region, AmazonSQSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return sqsClientMap.get(region);
     }
 }

@@ -53,7 +53,7 @@ public class TerminateIamRoleResources implements TerminateResources {
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("iamRole", credentialsProvider);
-        List<IAMRoleResource> iamRoleResourceList = (List<IAMRoleResource>) fetcher.fetchResources(region, service, resources, details);
+        List<IAMRoleResource> iamRoleResourceList = (List<IAMRoleResource>) fetcher.fetchResources(region, resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
             if (iamRoleResource.getLastUsedDate() != null && iamRoleResource.getLastUsedDate().after(referenceDate)) {

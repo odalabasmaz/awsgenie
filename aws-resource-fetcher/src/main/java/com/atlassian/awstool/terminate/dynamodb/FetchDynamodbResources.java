@@ -6,6 +6,8 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.*;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.model.ListTablesRequest;
+import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
 import com.atlassian.awstool.terminate.AWSResource;
@@ -15,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -25,13 +28,25 @@ public class FetchDynamodbResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonDynamoDB> dynamoClientMap;
 
     public FetchDynamodbResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.dynamoClientMap = new HashMap<>();
+    }
+
+
+    @Override
+    public void listResources(String region, Consumer<List<String>> consumer) {
+        consume((nextMarker) -> {
+            ListTablesResult listTablesResult = getDynamoClient(region).listTables(new ListTablesRequest().withExclusiveStartTableName(nextMarker));
+            consumer.accept(listTablesResult.getTableNames());
+            return listTablesResult.getLastEvaluatedTableName();
+        });
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
                 .builder()
                 .withRegion(region)
@@ -127,5 +142,17 @@ public class FetchDynamodbResources implements FetchResources {
             }
         }
         return dynamodbResourceList;
+    }
+
+
+    private AmazonDynamoDB getDynamoClient(String region) {
+        if (dynamoClientMap.get(region) == null) {
+            dynamoClientMap.put(region, AmazonDynamoDBClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return dynamoClientMap.get(region);
     }
 }

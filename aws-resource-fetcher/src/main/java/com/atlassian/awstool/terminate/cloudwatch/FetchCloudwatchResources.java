@@ -8,12 +8,12 @@ import com.amazonaws.services.cloudwatch.model.DescribeAlarmsResult;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -21,16 +21,29 @@ import java.util.List;
  */
 
 public class FetchCloudwatchResources implements FetchResources {
-    private static final Logger LOGGER = LogManager.getLogger(FetchCloudwatchResources.class);
-
     private final AWSCredentialsProvider credentialsProvider;
 
     public FetchCloudwatchResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
+    
+    @Override
+    public void listResources(String region, Consumer<List<String>> consumer) {
+        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+        consume((nextMarker) -> {
+            DescribeAlarmsResult describeAlarmsResult = cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withNextToken(nextMarker));
+            List<String> alarmList = describeAlarmsResult.getMetricAlarms().stream().map(MetricAlarm::getAlarmName).collect(Collectors.toList());
+            consumer.accept(alarmList);
+            return describeAlarmsResult.getNextToken();
+        });
+    }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)
@@ -58,4 +71,5 @@ public class FetchCloudwatchResources implements FetchResources {
         }
         return cloudwatchResourceList;
     }
+
 }
