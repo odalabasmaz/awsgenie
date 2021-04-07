@@ -1,6 +1,8 @@
 package com.atlassian.awstool.terminate;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Orhun Dalabasmaz
@@ -9,4 +11,14 @@ import java.util.List;
 
 public interface FetchResources {
     List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) throws Exception;
+
+    void listResources(String region, Consumer<List<?>> consumer) throws Exception;
+
+    default <T> void consume(Function<String, String> function) {
+        String nextMarker = null;
+        do {
+            nextMarker = function.apply(nextMarker);
+        }
+        while (nextMarker != null);
+    }
 }

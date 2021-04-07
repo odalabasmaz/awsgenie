@@ -10,6 +10,7 @@ import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClient;
 import com.amazonaws.services.cloudwatchevents.model.ListTargetsByRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.Target;
+import com.amazonaws.services.dynamodbv2.xspec.L;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.*;
@@ -20,9 +21,8 @@ import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -33,9 +33,20 @@ public class FetchLambdaResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchLambdaResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private Map<String, AWSLambda> lambdaMap;
 
     public FetchLambdaResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.lambdaMap = new HashMap<>();
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<?>> consumer) throws Exception {
+        consume((String nextMarker) -> {
+            ListFunctionsResult listFunctionsResult = getLambdaClient(region).listFunctions(new ListFunctionsRequest().withMarker(nextMarker));
+            consumer.accept(listFunctionsResult.getFunctions());
+            return listFunctionsResult.getNextMarker();
+        });
     }
 
     @Override
@@ -139,5 +150,17 @@ public class FetchLambdaResources implements FetchResources {
         LOGGER.info("Succeed.");
 
         return lambdaResourceList;
+    }
+
+
+    private AWSLambda getLambdaClient(String region) {
+        if (lambdaMap.get(region) == null) {
+            lambdaMap.put(region, AWSLambdaClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return lambdaMap.get(region);
     }
 }
