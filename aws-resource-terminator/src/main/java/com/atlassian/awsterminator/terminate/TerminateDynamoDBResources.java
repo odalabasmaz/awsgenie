@@ -51,7 +51,7 @@ public class TerminateDynamoDBResources implements TerminateResources {
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("dynamodb", credentialsProvider);
-        List<DynamodbResource> cloudwatchResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, service, resources, details);
+        List<DynamodbResource> cloudwatchResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, resources, details);
 
         for (DynamodbResource dynamodbResource : cloudwatchResourceList) {
             if (dynamodbResource.getTotalUsage() > 0) {

@@ -21,8 +21,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -38,8 +40,9 @@ public class FetchLambdaResources implements FetchResources {
         this.credentialsProvider = credentialsProvider;
     }
 
+
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
@@ -139,5 +142,28 @@ public class FetchLambdaResources implements FetchResources {
         LOGGER.info("Succeed.");
 
         return lambdaResourceList;
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+
+        AWSLambda lambdaClient = AWSLambdaClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        List<String> lambdaResourceNameList = new ArrayList<>();
+
+        consume((String nextMarker) -> {
+            ListFunctionsResult listFunctionsResult = lambdaClient.listFunctions(new ListFunctionsRequest().withMarker(nextMarker));
+            for (FunctionConfiguration functionConfiguration : listFunctionsResult.getFunctions()) {
+                lambdaResourceNameList.add(functionConfiguration.getFunctionName());
+            }
+
+            List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources(region, lambdaResourceNameList, Collections.emptyList());
+            consumer.accept(lambdaResourceList);
+            return listFunctionsResult.getNextMarker();
+        });
     }
 }

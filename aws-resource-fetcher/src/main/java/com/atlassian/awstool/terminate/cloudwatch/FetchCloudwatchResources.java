@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -30,7 +31,7 @@ public class FetchCloudwatchResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)
@@ -57,5 +58,10 @@ public class FetchCloudwatchResources implements FetchResources {
             cloudwatchResourceList.add(new CloudwatchResource().setResourceName(cloudwatchAlarmToDelete));
         }
         return cloudwatchResourceList;
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+
     }
 }

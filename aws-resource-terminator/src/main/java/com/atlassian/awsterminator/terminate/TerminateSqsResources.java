@@ -71,7 +71,7 @@ public class TerminateSqsResources implements TerminateResources {
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("sqs", credentialsProvider);
-        List<SQSResource> sqsResourceList = (List<SQSResource>) fetcher.fetchResources(region, service, resources, details);
+        List<SQSResource> sqsResourceList = (List<SQSResource>) fetcher.fetchResources(region, resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
             queuesToDelete.add(sqsResource.getResourceName());
             lambdaTriggersToDelete.addAll(sqsResource.getLambdaTriggers());

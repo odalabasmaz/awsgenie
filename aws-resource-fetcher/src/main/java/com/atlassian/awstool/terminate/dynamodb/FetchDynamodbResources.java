@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -31,7 +32,7 @@ public class FetchDynamodbResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
                 .builder()
                 .withRegion(region)
@@ -127,5 +128,10 @@ public class FetchDynamodbResources implements FetchResources {
             }
         }
         return dynamodbResourceList;
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+
     }
 }

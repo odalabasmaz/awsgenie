@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +34,7 @@ public class FetchSNSResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
                 .withRegion(region)
@@ -133,5 +134,28 @@ public class FetchSNSResources implements FetchResources {
 
     private String getResourceFromArn(String arn) {
         return Arn.fromString(arn).getResource().getResource();
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+
+        AmazonSNS snsClient = AmazonSNSClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        List<String> snsResourceNameList = new ArrayList<>();
+
+        consume((String nextMarker) -> {
+            ListTopicsResult listTopicsResult = snsClient.listTopics(new ListTopicsRequest().withNextToken(nextMarker));
+            for (Topic topic : listTopicsResult.getTopics()) {
+                snsResourceNameList.add(getResourceFromArn(topic.getTopicArn()));
+            }
+
+            List<SNSResource> snsResourceList = (List<SNSResource>) fetchResources(region, snsResourceNameList, Collections.emptyList());
+            consumer.accept(snsResourceList);
+            return listTopicsResult.getNextToken();
+        });
     }
 }

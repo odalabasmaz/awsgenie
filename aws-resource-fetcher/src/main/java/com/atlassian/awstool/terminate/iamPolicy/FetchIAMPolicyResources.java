@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * @author Orhun Dalabasmaz
@@ -31,7 +32,7 @@ public class FetchIAMPolicyResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
@@ -71,5 +72,10 @@ public class FetchIAMPolicyResources implements FetchResources {
 
     public static String generatePolicyArn(String policyName, String accountId) {
         return "arn:aws:iam::" + accountId + ":policy/" + policyName;
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<? extends AWSResource>> consumer) {
+
     }
 }

@@ -83,7 +83,7 @@ public class TerminateIamPolicyResources implements TerminateResources {
         }*/
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("iamPolicy", credentialsProvider);
-        List<IAMPolicyResource> iamPolicyResourceList = (List<IAMPolicyResource>) fetcher.fetchResources(region, service, resources, details);
+        List<IAMPolicyResource> iamPolicyResourceList = (List<IAMPolicyResource>) fetcher.fetchResources(region, resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
             if (iamPolicyResource.getLastUsedDate() != null && iamPolicyResource.getLastUsedDate().after(referenceDate)) {

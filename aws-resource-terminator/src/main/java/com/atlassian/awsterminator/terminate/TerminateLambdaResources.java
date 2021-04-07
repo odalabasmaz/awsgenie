@@ -77,7 +77,7 @@ public class TerminateLambdaResources implements TerminateResources {
 
         FetchResourceFactory fetchResourceFactory = new FetchResourceFactory();
         FetchResources fetchResources = fetchResourceFactory.getFetcher("lambda", credentialsProvider);
-        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, service, resources, details);
+        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, resources, details);
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());

@@ -37,7 +37,7 @@ public class TerminateCloudwatchResources implements TerminateResources {
                 .build();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("cloudwatch", credentialsProvider);
-        List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, service, resources, null);
+        List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);
