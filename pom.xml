@@ -24,6 +24,7 @@
 
     <modules>
         <module>aws-resource-fetcher</module>
+        <module>aws-resource-comparator</module>
         <module>aws-resource-terminator</module>
     </modules>
 
