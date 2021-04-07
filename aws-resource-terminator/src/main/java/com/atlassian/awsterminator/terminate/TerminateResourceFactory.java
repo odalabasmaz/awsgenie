@@ -29,6 +29,8 @@ public class TerminateResourceFactory {
             return new TerminateIamRoleResources(credentialsProvider);
         } else if ("iamPolicy".equalsIgnoreCase(service)) {
             return new TerminateIamPolicyResources(credentialsProvider);
+        } else if ("kinesis".equalsIgnoreCase(service)) {
+            return new TerminateKinesisResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);
         }
