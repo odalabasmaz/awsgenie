@@ -1,14 +1,12 @@
-package com.atlassian.awsterminator.terminate;
+package com.atlassian.awstool.terminate.sqs;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClient;
-import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsRequest;
 import com.amazonaws.services.sns.AmazonSNS;
@@ -21,6 +19,8 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
+import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,17 +32,17 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class TerminateSqsResources implements TerminateResources {
-    private static final Logger LOGGER = LogManager.getLogger(TerminateSqsResources.class);
+public class FetchSQSResources implements FetchResources {
+    private static final Logger LOGGER = LogManager.getLogger(FetchSQSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
 
-    public TerminateSqsResources(AWSCredentialsProvider credentialsProvider) {
+    public FetchSQSResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) {
+    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AmazonSQSClient
                 .builder()
                 .withRegion(region)
@@ -68,13 +68,6 @@ public class TerminateSqsResources implements TerminateResources {
                 .build();
 
         // Resources to be removed
-        LinkedHashSet<String> queuesToDelete = new LinkedHashSet<>();
-        //LinkedHashSet<String> dlqsToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> lambdaTriggersToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> snsSubscriptionsToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
-        List<String> details = new LinkedList<>();
 
         // build sns subscription - sqs name mapping
         Map<String, List<String>> sqsSnsMapping = new HashMap<>();
@@ -109,6 +102,7 @@ public class TerminateSqsResources implements TerminateResources {
             }
         } while (nextToken != null);
 
+        List<SQSResource> sqsResourceList = new ArrayList<>();
         // process each queue
         for (String queueName : resources) {
             try {
@@ -124,22 +118,6 @@ public class TerminateSqsResources implements TerminateResources {
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .collect(Collectors.toList());
 
-                // DLQ (commented out since multiple queues can use the same queue as DLQ)
-                /*
-                String dlqNumberOfMessages = "0";
-                if (dlqUrlArn != null) {
-                    String dlqName = dlqUrlArn.split(":")[5];
-                    String dlqUrl = sqsClient.getQueueUrl(new GetQueueUrlRequest().withQueueName(dlqName)).getQueueUrl();
-                    Map<String, String> dlqAttributes = sqsClient.getQueueAttributes(new GetQueueAttributesRequest().withQueueUrl(dlqUrl).withAttributeNames("All")).getAttributes();
-                    dlqNumberOfMessages = dlqAttributes.get("ApproximateNumberOfMessages");
-
-                    // Cloudwatch alarms
-                    cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("SQS Queue " + dlqName + " "))
-                            .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
-                            .forEach(cloudwatchAlarmsToDelete::add);
-                }
-                */
-
                 // SNS subscriptions
                 List<String> snsSubscriptionArns = sqsSnsMapping.get(queueName);
                 if (snsSubscriptionArns == null) snsSubscriptionArns = Collections.emptyList();
@@ -151,54 +129,19 @@ public class TerminateSqsResources implements TerminateResources {
                 List<String> functions = eventSourceMappings.stream().map(EventSourceMappingConfiguration::getFunctionArn).map(arn -> arn.split(":")[6]).collect(Collectors.toList());
                 List<String> eventSourceIds = eventSourceMappings.stream().map(EventSourceMappingConfiguration::getUUID).collect(Collectors.toList());
 
-                // Add to delete list at last step if gathering the subscriptions fail
-                queuesToDelete.add(queueUrl);
-                //dlqsToDelete.add(dlqUrl);
-                cloudwatchAlarmsToDelete.addAll(cwAlarms);
-                snsSubscriptionsToDelete.addAll(snsSubscriptionArns);
-                lambdaTriggersToDelete.addAll(eventSourceIds);
-
                 details.add(String.format("Resources info for: [%s], there are [%s] message(s) in queue, sns subscription(s): %s, lambda trigger(s): %s, cw alarms: %s",
-                        queueName, numberOfMessages, snsSubscriptionArns, functions, cloudwatchAlarmsToDelete));
+                        queueName, numberOfMessages, snsSubscriptionArns, functions, cwAlarms));
+                SQSResource sqsResource = new SQSResource().setResourceName(queueUrl);
+                sqsResource.getCloudwatchAlarms().addAll(cwAlarms);
+                sqsResource.getSnsSubscriptions().addAll(snsSubscriptionArns);
+                sqsResource.getLambdaTriggers().addAll(eventSourceIds);
 
+                sqsResourceList.add(sqsResource);
             } catch (QueueDoesNotExistException ex) {
                 details.add("!!! SQS resource not exists: " + queueName);
                 LOGGER.warn("SQS resource not exists: " + queueName);
-            } /*catch (Exception ex) {
-                details.add("!!! Error occurred for: " + queueName);
-                LOGGER.error("Error occurred while processing queue: " + queueName, ex);
-            }*/
-        }
-
-        StringBuilder info = new StringBuilder()
-                .append("The resources will be terminated regarding ").append(ticket).append("\n")
-                .append("* Dry-Run: ").append(!apply).append("\n")
-                .append("* Lambda event-source mappings: ").append(lambdaTriggersToDelete).append("\n")
-                .append("* SNS subscriptions: ").append(snsSubscriptionsToDelete).append("\n")
-                //.append("* DLQs: ").append(dlqsToDelete).append("\n")
-                .append("* Queues: ").append(queuesToDelete).append("\n")
-                .append("* Cloudwatch alarms: ").append(cloudwatchAlarmsToDelete).append("\n");
-
-        info.append("Details:\n");
-        details.forEach(d -> info.append("-- ").append(d).append("\n"));
-        LOGGER.info(info);
-
-        if (apply) {
-            LOGGER.info("Terminating the resources...");
-
-            lambdaTriggersToDelete.forEach(r -> lambdaClient.deleteEventSourceMapping(new DeleteEventSourceMappingRequest().withUUID(r)));
-
-            snsSubscriptionsToDelete.forEach(snsClient::unsubscribe);
-
-            if (!cloudwatchAlarmsToDelete.isEmpty()) {
-                cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
-
-            //dlqsToDelete.forEach(sqsClient::deleteQueue);
-
-            queuesToDelete.forEach(sqsClient::deleteQueue);
         }
-
-        LOGGER.info("Succeed.");
+        return sqsResourceList;
     }
 }

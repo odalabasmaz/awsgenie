@@ -4,25 +4,17 @@ import com.amazonaws.arn.Arn;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.*;
-import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
+import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.BucketNotificationConfiguration;
-import com.amazonaws.services.s3.model.GetBucketNotificationConfigurationRequest;
-import com.amazonaws.services.s3.model.NotificationConfiguration;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.atlassian.awstool.terminate.FetchResourceFactory;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * @author Celal Emre CICEK
@@ -40,7 +32,7 @@ public class TerminateSnsResources implements TerminateResources {
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) {
+    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
                 .withRegion(region)
@@ -58,7 +50,7 @@ public class TerminateSnsResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        Date endDate = new Date();
+        /*Date endDate = new Date();
         Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
         Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
 
@@ -143,6 +135,19 @@ public class TerminateSnsResources implements TerminateResources {
                 details.add("!!! Topic not exists: " + topicName);
                 LOGGER.warn("Topic not exists: " + topicName);
             }
+        }*/
+
+        FetchResources fetcher = new FetchResourceFactory().getFetcher("sns", credentialsProvider);
+        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, service, resources, details);
+
+        for (SNSResource snsResource : snsResourceList) {
+            if (snsResource.getPublishCountInLastWeek() > 0) {
+                details.add("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + snsResource.getPublishCountInLastWeek() + "]");
+                LOGGER.warn("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + snsResource.getPublishCountInLastWeek() + "]");
+                continue;
+            }
+            topicsToDelete.add(snsResource.getResourceName());
+            cloudwatchAlarmsToDelete.addAll(snsResource.getCloudwatchAlarms());
         }
 
         StringBuilder info = new StringBuilder()

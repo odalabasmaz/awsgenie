@@ -1,4 +1,4 @@
-package com.atlassian.awsterminator.terminate;
+package com.atlassian.awstool.terminate.dynamodb;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -8,13 +8,12 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,17 +21,17 @@ import java.util.concurrent.TimeUnit;
  * @version 10.03.2021
  */
 
-public class TerminateDynamoDBResources implements TerminateResources {
-    private static final Logger LOGGER = LogManager.getLogger(TerminateDynamoDBResources.class);
+public class FetchDynamodbResources implements FetchResources {
+    private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
 
-    public TerminateDynamoDBResources(AWSCredentialsProvider credentialsProvider) {
+    public FetchDynamodbResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) {
+    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
                 .builder()
                 .withRegion(region)
@@ -45,19 +44,17 @@ public class TerminateDynamoDBResources implements TerminateResources {
                 .withCredentials(credentialsProvider)
                 .build();
 
-        // Resources to be removed
-        LinkedHashSet<String> tablesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
-        List<String> details = new LinkedList<>();
-
         Date endDate = new Date();
         Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
         Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
 
+        List<DynamodbResource> dynamodbResourceList = new ArrayList<>();
+
         // process each dynamodb tables
         for (String tableName : resources) {
             try {
+                LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
+
                 // get table
                 TableDescription table = dynamoDBClient.describeTable(tableName).getTable();
                 Long itemCount = table.getItemCount();
@@ -102,53 +99,33 @@ public class TerminateDynamoDBResources implements TerminateResources {
                         )
                 );
                 //double totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
-                Double totalUsage = result.getMetricDataResults().stream().filter(r -> r.getId().equals("totalUsage")).findFirst().map(u -> u.getValues().get(0)).orElse(0.0);
-                if (totalUsage > 0) {
-                    details.add("DynamoDB table seems in use, not deleting: [" + tableName + "], totalUsage: [" + totalUsage + "]");
-                    LOGGER.warn("DynamoDB table seems in use, not deleting: [" + tableName + "], totalUsage: [" + totalUsage + "]");
-                    continue;
+                Double totalUsage = 0d;
+
+                Optional<MetricDataResult> optionalMetricDataResult = result.getMetricDataResults().stream().filter(r -> r.getId().equals("totalUsage")).findFirst();
+                if (optionalMetricDataResult.isPresent() && optionalMetricDataResult.get().getValues().size() > 0) {
+                    //Double totalUsage = result.getMetricDataResults().stream().filter(r -> r.getId().equals("totalUsage")).findFirst().map(u -> u.getValues().get(0)).orElse(0.0);
+                    totalUsage = optionalMetricDataResult.get().getValues().get(0);
+                } else {
+                    LOGGER.warn("totalUsage metric is not present for table: " + tableName);
                 }
 
                 // Cloudwatch alarms
                 cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("DynamoDB table " + tableName + " "))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
-                        .forEach(cloudwatchAlarmsToDelete::add);
+                        .forEach(cloudwatchAlarms::add);
 
-                // Add to delete list at last step if gathering the subscriptions fail
-                tablesToDelete.add(tableName);
+                DynamodbResource dynamodbResource = new DynamodbResource().setResourceName(tableName).setTotalUsage(totalUsage);
+                dynamodbResource.getCloudwatchAlarmList().addAll(cloudwatchAlarms);
+                dynamodbResourceList.add(dynamodbResource);
 
                 details.add(String.format("Resources info for: [%s], [%s] items on table, total usage for last week: [%s], cw alarms: %s",
-                        tableName, itemCount, totalUsage, cloudwatchAlarmsToDelete));
+                        tableName, itemCount, totalUsage, cloudwatchAlarms));
 
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! DynamoDB table not exists: " + tableName);
                 LOGGER.warn("DynamoDB table not exists: " + tableName);
-            } /*catch (Exception ex) {
-                details.add("!!! Error occurred for: " + tableName);
-                LOGGER.error("Error occurred while processing dynamodb table: " + tableName, ex);
-            }*/
-        }
-
-        StringBuilder info = new StringBuilder()
-                .append("The resources will be terminated regarding ").append(ticket).append("\n")
-                .append("* Dry-Run: ").append(!apply).append("\n")
-                .append("* DynamoDB tables: ").append(tablesToDelete).append("\n")
-                .append("* Cloudwatch alarms: ").append(cloudwatchAlarmsToDelete).append("\n");
-
-        info.append("Details:\n");
-        details.forEach(d -> info.append("-- ").append(d).append("\n"));
-        LOGGER.info(info);
-
-        if (apply) {
-            LOGGER.info("Terminating the resources...");
-
-            tablesToDelete.forEach(dynamoDBClient::deleteTable);
-
-            if (!cloudwatchAlarmsToDelete.isEmpty()) {
-                cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
-
-        LOGGER.info("Succeed.");
+        return dynamodbResourceList;
     }
 }
