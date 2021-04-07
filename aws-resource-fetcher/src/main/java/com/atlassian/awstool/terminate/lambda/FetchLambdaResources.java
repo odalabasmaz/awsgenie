@@ -20,10 +20,7 @@ import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -35,9 +32,11 @@ public class FetchLambdaResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchLambdaResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AWSLambda> lambdaClientMap;
 
     public FetchLambdaResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.lambdaClientMap = new HashMap<>();
     }
 
 
@@ -145,18 +144,12 @@ public class FetchLambdaResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<?>> consumer) {
-
-        AWSLambda lambdaClient = AWSLambdaClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+    public void listResources(String region, Consumer<List<String>> consumer) {
 
         List<String> lambdaResourceNameList = new ArrayList<>();
 
         consume((String nextMarker) -> {
-            ListFunctionsResult listFunctionsResult = lambdaClient.listFunctions(new ListFunctionsRequest().withMarker(nextMarker));
+            ListFunctionsResult listFunctionsResult = getLambdaClient(region).listFunctions(new ListFunctionsRequest().withMarker(nextMarker));
             for (FunctionConfiguration functionConfiguration : listFunctionsResult.getFunctions()) {
                 lambdaResourceNameList.add(functionConfiguration.getFunctionName());
             }
@@ -164,5 +157,16 @@ public class FetchLambdaResources implements FetchResources {
             consumer.accept(lambdaResourceNameList);
             return listFunctionsResult.getNextMarker();
         });
+    }
+
+    private AWSLambda getLambdaClient(String region) {
+        if (lambdaClientMap.get(region) == null) {
+            lambdaClientMap.put(region, AWSLambdaClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return lambdaClientMap.get(region);
     }
 }

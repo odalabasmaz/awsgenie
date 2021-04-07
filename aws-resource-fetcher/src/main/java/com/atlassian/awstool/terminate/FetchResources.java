@@ -12,7 +12,7 @@ import java.util.function.Function;
 public interface FetchResources {
     List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
 
-    void listResources(String region, Consumer<List<? extends Object>> consumer) throws Exception;
+    void listResources(String region, Consumer<List<String>> consumer) throws Exception;
 
     default <T> void consume(Function<String, String> function) {
         String nextMarker = null;

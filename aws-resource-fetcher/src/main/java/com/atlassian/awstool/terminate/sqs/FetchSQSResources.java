@@ -36,9 +36,11 @@ public class FetchSQSResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchSQSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonSQS> sqsClientMap;
 
     public FetchSQSResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.sqsClientMap = new HashMap<>();
     }
 
     @Override
@@ -146,18 +148,12 @@ public class FetchSQSResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<?>> consumer) {
-
-        AmazonSQS sqsClient = AmazonSQSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+    public void listResources(String region, Consumer<List<String>> consumer) {
 
         List<String> sqsResourceNameList = new ArrayList<>();
 
         consume((String nextMarker) -> {
-            ListQueuesResult listQueuesResult = sqsClient.listQueues(new ListQueuesRequest().withNextToken(nextMarker));
+            ListQueuesResult listQueuesResult = getSQSClient(region).listQueues(new ListQueuesRequest().withNextToken(nextMarker));
             for (String queueUrl : listQueuesResult.getQueueUrls()) {
                 sqsResourceNameList.add(getQueueNameFromURL(queueUrl));
             }
@@ -169,5 +165,16 @@ public class FetchSQSResources implements FetchResources {
 
     private String getQueueNameFromURL(String queueURL) {
         return queueURL.substring(queueURL.lastIndexOf("/") + 1);
+    }
+
+    private AmazonSQS getSQSClient(String region) {
+        if (sqsClientMap.get(region) == null) {
+            sqsClientMap.put(region, AmazonSQSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return sqsClientMap.get(region);
     }
 }

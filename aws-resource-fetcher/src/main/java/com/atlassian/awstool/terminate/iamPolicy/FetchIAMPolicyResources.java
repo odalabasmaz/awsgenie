@@ -4,8 +4,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.*;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
 import com.atlassian.awstool.terminate.AWSResource;
@@ -15,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -25,7 +24,7 @@ public class FetchIAMPolicyResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchIAMPolicyResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
-    private Map<String, AmazonIdentityManagement> iamClientMap;
+    private final Map<String, AmazonIdentityManagement> iamClientMap;
 
     public FetchIAMPolicyResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -34,10 +33,11 @@ public class FetchIAMPolicyResources implements FetchResources {
 
 
     @Override
-    public void listResources(String region, Consumer<List<?>> consumer) {
+    public void listResources(String region, Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListPoliciesResult listPoliciesResult = getIamClient(region).listPolicies(new ListPoliciesRequest().withMarker(nextMarker));
-            consumer.accept(listPoliciesResult.getPolicies());
+            List<String> policyList = listPoliciesResult.getPolicies().stream().map(Policy::getPolicyName).collect(Collectors.toList());
+            consumer.accept(policyList);
             return listPoliciesResult.getMarker();
         });
     }

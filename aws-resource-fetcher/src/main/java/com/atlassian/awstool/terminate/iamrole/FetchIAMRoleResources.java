@@ -4,9 +4,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.*;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.FunctionConfiguration;
-import com.amazonaws.services.lambda.model.ListFunctionsResult;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
@@ -17,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -35,10 +33,11 @@ public class FetchIAMRoleResources implements FetchResources {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<?>> consumer) {
+    public void listResources(String region, Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListRolesResult listRolesResult = getIamClient(region).listRoles(new ListRolesRequest().withMarker(nextMarker));
-            consumer.accept(listRolesResult.getRoles());
+            List<String> roleList = listRolesResult.getRoles().stream().map(Role::getRoleName).collect(Collectors.toList());
+            consumer.accept(roleList);
             return listRolesResult.getMarker();
         });
     }

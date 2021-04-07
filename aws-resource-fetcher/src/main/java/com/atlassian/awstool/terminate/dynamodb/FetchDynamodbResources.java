@@ -28,7 +28,7 @@ public class FetchDynamodbResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
-    private Map<String, AmazonDynamoDB> dynamoClientMap;
+    private final Map<String, AmazonDynamoDB> dynamoClientMap;
 
     public FetchDynamodbResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -37,7 +37,7 @@ public class FetchDynamodbResources implements FetchResources {
 
 
     @Override
-    public void listResources(String region, Consumer<List<? extends Object>> consumer) {
+    public void listResources(String region, Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListTablesResult listTablesResult = getDynamoClient(region).listTables(new ListTablesRequest().withExclusiveStartTableName(nextMarker));
             consumer.accept(listTablesResult.getTableNames());
