@@ -138,7 +138,7 @@ public class TerminateSnsResources implements TerminateResources {
         }*/
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("sns", credentialsProvider);
-        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, service, resources, details);
+        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
             if (snsResource.getPublishCountInLastWeek() > 0) {

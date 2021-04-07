@@ -6,6 +6,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
 import com.amazonaws.services.cloudwatch.model.*;
+import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.*;
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -27,13 +29,15 @@ public class FetchSNSResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchSNSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonSNS> snsClientMap;
 
     public FetchSNSResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+        this.snsClientMap = new HashMap<>();
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
                 .withRegion(region)
@@ -133,5 +137,32 @@ public class FetchSNSResources implements FetchResources {
 
     private String getResourceFromArn(String arn) {
         return Arn.fromString(arn).getResource().getResource();
+    }
+
+    @Override
+    public void listResources(String region, Consumer<List<String>> consumer) {
+
+        List<String> snsResourceNameList = new ArrayList<>();
+
+        consume((String nextMarker) -> {
+            ListTopicsResult listTopicsResult = getSNSClient(region).listTopics(new ListTopicsRequest().withNextToken(nextMarker));
+            for (Topic topic : listTopicsResult.getTopics()) {
+                snsResourceNameList.add(getResourceFromArn(topic.getTopicArn()));
+            }
+
+            consumer.accept(snsResourceNameList);
+            return listTopicsResult.getNextToken();
+        });
+    }
+
+    private AmazonSNS getSNSClient(String region) {
+        if (snsClientMap.get(region) == null) {
+            snsClientMap.put(region, AmazonSNSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+        return snsClientMap.get(region);
     }
 }
