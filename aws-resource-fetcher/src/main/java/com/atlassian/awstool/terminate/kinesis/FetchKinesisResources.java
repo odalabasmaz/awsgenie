@@ -5,6 +5,10 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.*;
+import com.amazonaws.services.kinesis.AmazonKinesis;
+import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.amazonaws.services.kinesis.model.ListStreamsRequest;
+import com.amazonaws.services.kinesis.model.ListStreamsResult;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
@@ -16,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * @author Celal Emre CICEK
@@ -26,13 +31,14 @@ public class FetchKinesisResources implements FetchResources {
     private static final Logger LOGGER = LogManager.getLogger(FetchKinesisResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private final Map<String, AmazonKinesis> kinesisClientMap = new HashMap<>();
 
     public FetchKinesisResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, String service, List<String> resources, List<String> details) {
+    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)
@@ -148,7 +154,37 @@ public class FetchKinesisResources implements FetchResources {
         return kinesisResourceList;
     }
 
+    @Override
+    public void listResources(String region, Consumer<List<String>> consumer) throws Exception {
+        List<String> kinesisResourceNameList = new ArrayList<>();
+
+        consume((String nextMarker) -> {
+            ListStreamsResult listStreamsResult = getKinesisClient(region).listStreams(new ListStreamsRequest().withExclusiveStartStreamName(nextMarker));
+            kinesisResourceNameList.addAll(listStreamsResult.getStreamNames());
+
+            consumer.accept(kinesisResourceNameList);
+
+            if (listStreamsResult.isHasMoreStreams()) {
+                return kinesisResourceNameList.get(kinesisResourceNameList.size() - 1);
+            }
+
+            return null;
+        });
+    }
+
     private String getResourceFromArn(String arn) {
         return Arn.fromString(arn).getResource().getResource();
+    }
+
+    private AmazonKinesis getKinesisClient(String region) {
+        if (kinesisClientMap.get(region) == null) {
+            kinesisClientMap.put(region, AmazonKinesisClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build());
+        }
+
+        return kinesisClientMap.get(region);
     }
 }

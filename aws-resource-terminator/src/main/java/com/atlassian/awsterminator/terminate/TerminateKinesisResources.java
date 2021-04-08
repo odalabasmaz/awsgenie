@@ -51,7 +51,7 @@ public class TerminateKinesisResources implements TerminateResources {
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("kinesis", credentialsProvider);
-        List<KinesisResource> cloudwatchResourceList = (List<KinesisResource>) fetcher.fetchResources(region, service, resources, details);
+        List<KinesisResource> cloudwatchResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : cloudwatchResourceList) {
             if (kinesisResource.getTotalUsage() > 0) {
