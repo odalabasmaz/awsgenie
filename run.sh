@@ -22,4 +22,4 @@ while getopts ":b:u" opt; do
   esac
 done
 
-java -jar target/aws-resource-terminator-fat-1.0-SNAPSHOT.jar $@
+java -jar aws-resource-terminator/target/aws-resource-terminator-fat-1.0-SNAPSHOT.jar $@

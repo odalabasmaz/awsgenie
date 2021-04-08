@@ -5,6 +5,7 @@ import com.atlassian.awstool.terminate.cloudwatch.FetchCloudwatchResources;
 import com.atlassian.awstool.terminate.dynamodb.FetchDynamodbResources;
 import com.atlassian.awstool.terminate.iamPolicy.FetchIAMPolicyResources;
 import com.atlassian.awstool.terminate.iamrole.FetchIAMRoleResources;
+import com.atlassian.awstool.terminate.kinesis.FetchKinesisResources;
 import com.atlassian.awstool.terminate.lambda.FetchLambdaResources;
 import com.atlassian.awstool.terminate.sns.FetchSNSResources;
 import com.atlassian.awstool.terminate.sqs.FetchSQSResources;
@@ -32,6 +33,8 @@ public class FetchResourceFactory {
             return new FetchIAMPolicyResources(credentialsProvider);
         } else if ("sns".equalsIgnoreCase(service)) {
             return new FetchSNSResources(credentialsProvider);
+        } else if ("kinesis".equalsIgnoreCase(service)) {
+            return new FetchKinesisResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);
         }
