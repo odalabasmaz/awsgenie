@@ -24,6 +24,8 @@ public class TerminateCloudwatchResources implements TerminateResources {
     private static final Logger LOGGER = LogManager.getLogger(TerminateCloudwatchResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private AmazonCloudWatch cloudWatchClient;
+    private FetchResourceFactory fetchResourceFactory;
 
     public TerminateCloudwatchResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -31,13 +33,9 @@ public class TerminateCloudwatchResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
-        FetchResources fetcher = new FetchResourceFactory().getFetcher("cloudwatch", credentialsProvider);
+        FetchResources fetcher = getFetchResourceFactory().getFetcher("cloudwatch", credentialsProvider);
         List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
@@ -68,5 +66,33 @@ public class TerminateCloudwatchResources implements TerminateResources {
                 .forEach(interceptor -> interceptor.intercept(service, cloudwatchResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
+    }
+
+    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
+        this.cloudWatchClient = cloudWatchClient;
+    }
+
+    private AmazonCloudWatch getCloudWatchClient(String region) {
+        if (this.cloudWatchClient != null) {
+            return this.cloudWatchClient;
+        } else {
+            return AmazonCloudWatchClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+        this.fetchResourceFactory = fetchResourceFactory;
+    }
+
+    private FetchResourceFactory getFetchResourceFactory() {
+        if (this.fetchResourceFactory != null) {
+            return this.fetchResourceFactory;
+        } else {
+            return new FetchResourceFactory();
+        }
     }
 }

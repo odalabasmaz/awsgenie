@@ -31,6 +31,11 @@ public class TerminateSqsResources implements TerminateResources {
     private static final Logger LOGGER = LogManager.getLogger(TerminateSqsResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private AmazonSQS sqsClient;
+    private AmazonCloudWatch cloudWatchClient;
+    private AmazonSNS snsClient;
+    private AWSLambda lambdaClient;
+    private FetchResourceFactory fetchResourceFactory;
 
     public TerminateSqsResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -38,29 +43,10 @@ public class TerminateSqsResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonSQS sqsClient = AmazonSQSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AmazonSNS snsClient = AmazonSNSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AWSLambda lambdaClient = AWSLambdaClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonSQS sqsClient = getSqsClient(region);
+        AmazonSNS snsClient = getSnsClient(region);
+        AWSLambda lambdaClient = getLambdaClient(region);
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
         // Resources to be removed
         LinkedHashSet<String> queuesToDelete = new LinkedHashSet<>();
@@ -71,7 +57,7 @@ public class TerminateSqsResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = new FetchResourceFactory().getFetcher("sqs", credentialsProvider);
+        FetchResources fetcher = getFetchResourceFactory().getFetcher("sqs", credentialsProvider);
         List<SQSResource> sqsResourceList = (List<SQSResource>) fetcher.fetchResources(region, resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
             queuesToDelete.add(sqsResource.getResourceName());
@@ -100,14 +86,11 @@ public class TerminateSqsResources implements TerminateResources {
             LOGGER.info("Terminating the resources...");
 
             lambdaTriggersToDelete.forEach(r -> lambdaClient.deleteEventSourceMapping(new DeleteEventSourceMappingRequest().withUUID(r)));
-
             snsSubscriptionsToDelete.forEach(snsClient::unsubscribe);
 
             if (!cloudwatchAlarmsToDelete.isEmpty()) {
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
-
-            //dlqsToDelete.forEach(sqsClient::deleteQueue);
 
             queuesToDelete.forEach(sqsClient::deleteQueue);
         }
@@ -116,5 +99,81 @@ public class TerminateSqsResources implements TerminateResources {
                 .forEach(interceptor -> interceptor.intercept(service, sqsResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
+    }
+
+    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
+        this.cloudWatchClient = cloudWatchClient;
+    }
+
+    private AmazonCloudWatch getCloudWatchClient(String region) {
+        if (this.cloudWatchClient != null) {
+            return this.cloudWatchClient;
+        } else {
+            return AmazonCloudWatchClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setSnsClient(AmazonSNS snsClient) {
+        this.snsClient = snsClient;
+    }
+
+    private AmazonSNS getSnsClient(String region) {
+        if (this.snsClient != null) {
+            return this.snsClient;
+        } else {
+            return AmazonSNSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setLambdaClient(AWSLambda lambdaClient) {
+        this.lambdaClient = lambdaClient;
+    }
+
+    private AWSLambda getLambdaClient(String region) {
+        if (this.lambdaClient != null) {
+            return this.lambdaClient;
+        } else {
+            return AWSLambdaClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setSqsClient(AmazonSQS sqsClient) {
+        this.sqsClient = sqsClient;
+    }
+
+    private AmazonSQS getSqsClient(String region) {
+        if (this.sqsClient != null) {
+            return this.sqsClient;
+        } else {
+            return AmazonSQSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+        this.fetchResourceFactory = fetchResourceFactory;
+    }
+
+    private FetchResourceFactory getFetchResourceFactory() {
+        if (this.fetchResourceFactory != null) {
+            return this.fetchResourceFactory;
+        } else {
+            return new FetchResourceFactory();
+        }
     }
 }

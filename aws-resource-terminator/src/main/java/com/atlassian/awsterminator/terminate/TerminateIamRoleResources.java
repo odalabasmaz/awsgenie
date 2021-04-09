@@ -29,6 +29,8 @@ public class TerminateIamRoleResources implements TerminateResources {
     private static final Logger LOGGER = LogManager.getLogger(TerminateIamRoleResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private AmazonIdentityManagement iamClient;
+    private FetchResourceFactory fetchResourceFactory;
 
     public TerminateIamRoleResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -37,23 +39,17 @@ public class TerminateIamRoleResources implements TerminateResources {
     @Override
     public void terminateResource(String region,
                                   String service, List<String> resources, String ticket, boolean apply) throws Exception {
-
-        AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonIdentityManagement iamClient = getIAMClient(region);
 
         // Resources to be removed
         LinkedHashSet<String> rolesToDelete = new LinkedHashSet<>();
-
         List<String> details = new LinkedList<>();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
-        FetchResources fetcher = new FetchResourceFactory().getFetcher("iamRole", credentialsProvider);
+        FetchResources fetcher = getFetchResourceFactory().getFetcher("iamRole", credentialsProvider);
         List<IAMRoleResource> iamRoleResourceList = (List<IAMRoleResource>) fetcher.fetchResources(region, resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
@@ -87,5 +83,33 @@ public class TerminateIamRoleResources implements TerminateResources {
                 .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
+    }
+
+    void setIAMClient(AmazonIdentityManagement iamClient) {
+        this.iamClient = iamClient;
+    }
+
+    private AmazonIdentityManagement getIAMClient(String region) {
+        if (this.iamClient != null) {
+            return this.iamClient;
+        } else {
+            return AmazonIdentityManagementClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+        this.fetchResourceFactory = fetchResourceFactory;
+    }
+
+    private FetchResourceFactory getFetchResourceFactory() {
+        if (this.fetchResourceFactory != null) {
+            return this.fetchResourceFactory;
+        } else {
+            return new FetchResourceFactory();
+        }
     }
 }

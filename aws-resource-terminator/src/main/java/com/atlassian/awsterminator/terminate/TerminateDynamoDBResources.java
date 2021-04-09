@@ -26,6 +26,9 @@ public class TerminateDynamoDBResources implements TerminateResources {
     private static final Logger LOGGER = LogManager.getLogger(TerminateDynamoDBResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
+    private AmazonCloudWatch cloudWatchClient;
+    private AmazonDynamoDB dynamoDBClient;
+    private FetchResourceFactory fetchResourceFactory;
 
     public TerminateDynamoDBResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -33,17 +36,8 @@ public class TerminateDynamoDBResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonDynamoDB dynamoDBClient = getDynamoDBClient(region);
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
         // Resources to be removed
         LinkedHashSet<String> tablesToDelete = new LinkedHashSet<>();
@@ -51,7 +45,7 @@ public class TerminateDynamoDBResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = new FetchResourceFactory().getFetcher("dynamodb", credentialsProvider);
+        FetchResources fetcher = getFetchResourceFactory().getFetcher("dynamodb", credentialsProvider);
         List<DynamodbResource> dynamodbResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, resources, details);
 
         for (DynamodbResource dynamodbResource : dynamodbResourceList) {
@@ -91,5 +85,49 @@ public class TerminateDynamoDBResources implements TerminateResources {
                 .forEach(interceptor -> interceptor.intercept(service, dynamodbResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
+    }
+
+    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
+        this.cloudWatchClient = cloudWatchClient;
+    }
+
+    private AmazonCloudWatch getCloudWatchClient(String region) {
+        if (this.cloudWatchClient != null) {
+            return this.cloudWatchClient;
+        } else {
+            return AmazonCloudWatchClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setDynamoDBClient(AmazonDynamoDB dynamoDBClient) {
+        this.dynamoDBClient = dynamoDBClient;
+    }
+
+    private AmazonDynamoDB getDynamoDBClient(String region) {
+        if (this.dynamoDBClient != null) {
+            return this.dynamoDBClient;
+        } else {
+            return AmazonDynamoDBClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+        this.fetchResourceFactory = fetchResourceFactory;
+    }
+
+    private FetchResourceFactory getFetchResourceFactory() {
+        if (this.fetchResourceFactory != null) {
+            return this.fetchResourceFactory;
+        } else {
+            return new FetchResourceFactory();
+        }
     }
 }
