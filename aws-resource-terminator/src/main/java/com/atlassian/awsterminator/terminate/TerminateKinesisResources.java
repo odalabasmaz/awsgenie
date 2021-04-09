@@ -6,6 +6,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
@@ -51,9 +52,9 @@ public class TerminateKinesisResources implements TerminateResources {
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("kinesis", credentialsProvider);
-        List<KinesisResource> cloudwatchResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
+        List<KinesisResource> kinesisResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
 
-        for (KinesisResource kinesisResource : cloudwatchResourceList) {
+        for (KinesisResource kinesisResource : kinesisResourceList) {
             if (kinesisResource.getTotalUsage() > 0) {
                 details.add("Kinesis stream seems in use, not deleting: [" + kinesisResource.getResourceName() +
                         "], totalUsage: [" + kinesisResource.getTotalUsage() + "]");
@@ -76,6 +77,9 @@ public class TerminateKinesisResources implements TerminateResources {
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, kinesisResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
 
@@ -85,6 +89,9 @@ public class TerminateKinesisResources implements TerminateResources {
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, kinesisResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }

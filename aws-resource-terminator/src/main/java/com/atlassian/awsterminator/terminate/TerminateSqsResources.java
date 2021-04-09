@@ -11,6 +11,7 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.sqs.SQSResource;
@@ -92,6 +93,9 @@ public class TerminateSqsResources implements TerminateResources {
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, sqsResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
 
@@ -107,6 +111,9 @@ public class TerminateSqsResources implements TerminateResources {
 
             queuesToDelete.forEach(sqsClient::deleteQueue);
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, sqsResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }

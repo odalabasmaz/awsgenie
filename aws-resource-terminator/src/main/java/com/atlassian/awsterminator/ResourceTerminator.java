@@ -7,7 +7,6 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.configuration.FileConfiguration;
 import com.atlassian.awsterminator.configuration.ParameterConfiguration;
-import com.atlassian.awsterminator.output.registry.OutputSenderRegistry;
 import com.atlassian.awsterminator.terminate.TerminateResourceFactory;
 import com.atlassian.awsterminator.terminate.TerminateResources;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +30,6 @@ public class ResourceTerminator {
     private static final String DEFAULT_CONFIG_FILE_PATH = System.getProperty("user.home") + "/.awsterminator/config.json";
 
     public static void main(String[] args) throws Exception {
-        OutputSenderRegistry.registerOutputSenders();
         ParameterConfiguration parameterConfiguration = new ParameterConfiguration();
 
         try {
