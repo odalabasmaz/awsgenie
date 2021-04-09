@@ -3,11 +3,11 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.sns.AmazonSNS;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
-import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
+import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 
@@ -30,37 +31,36 @@ import static org.mockito.Mockito.*;
  */
 
 @RunWith(MockitoJUnitRunner.class)
-public class TerminateDynamoDBResourcesTest {
+public class TerminateSnsResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
-        add("table1");
-        add("table2");
-        add("table3");
+        add("topic1");
+        add("topic2");
+        add("topic3");
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
-        add(new DynamodbResource()
-                .setResourceName("table1")
-                .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
-                    add("table1 Read");
-                    add("table1 Write");
-                }})
-                .setTotalUsage(0.0));
-        add(new DynamodbResource()
-                .setResourceName("table2")
-                .setTotalUsage(1.0));
-        add(new DynamodbResource()
-                .setResourceName("table3")
-                .setTotalUsage(0.0));
+        add(new SNSResource()
+                .setResourceName("topic1")
+                .setPublishCountInLastWeek(0.0)
+                .setCloudwatchAlarms(new LinkedHashSet<String>() {{
+                    add("SNS Notification Failure-topic1");
+                }}));
+        add(new SNSResource()
+                .setResourceName("topic2")
+                .setPublishCountInLastWeek(1.0)
+                .setCloudwatchAlarms(new LinkedHashSet<String>() {{
+                    add("SNS Notification Failure-topic2");
+                }}));
     }};
 
     @Mock
     private AmazonCloudWatch cloudWatchClient;
 
     @Mock
-    private AmazonDynamoDB dynamoDBClient;
+    private AmazonSNS snsClient;
 
     @Mock
     private AWSCredentialsProvider credentialsProvider;
@@ -71,16 +71,16 @@ public class TerminateDynamoDBResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
-    private TerminateDynamoDBResources terminateDynamoDBResources;
+    private TerminateSnsResources terminateSnsResources;
 
     @Before
     public void setUp() throws Exception {
-        this.terminateDynamoDBResources = new TerminateDynamoDBResources(credentialsProvider);
-        terminateDynamoDBResources.setCloudWatchClient(cloudWatchClient);
-        terminateDynamoDBResources.setDynamoDBClient(dynamoDBClient);
-        terminateDynamoDBResources.setFetchResourceFactory(fetchResourceFactory);
+        this.terminateSnsResources = new TerminateSnsResources(credentialsProvider);
+        terminateSnsResources.setCloudWatchClient(cloudWatchClient);
+        terminateSnsResources.setSnsClient(snsClient);
+        terminateSnsResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("dynamodb", credentialsProvider))
+        when(fetchResourceFactory.getFetcher("sns", credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -88,26 +88,23 @@ public class TerminateDynamoDBResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, true);
+        terminateSnsResources.terminateResource(TEST_REGION, "sns", TEST_RESOURCES, TEST_TICKET, true);
 
-        ArgumentCaptor<String> ddbCaptor = ArgumentCaptor.forClass(String.class);
-        verify(dynamoDBClient).deleteTable("table1");
-        verify(dynamoDBClient).deleteTable("table3");
-        verifyNoMoreInteractions(dynamoDBClient);
+        verify(snsClient).deleteTopic("topic1");
+        verifyNoMoreInteractions(snsClient);
 
         ArgumentCaptor<DeleteAlarmsRequest> cwCaptor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
         verify(cloudWatchClient).deleteAlarms(cwCaptor.capture());
         verifyNoMoreInteractions(cloudWatchClient);
         DeleteAlarmsRequest actualCWRequest = cwCaptor.getValue();
-        assertThat(actualCWRequest.getAlarmNames().size(), is(equalTo(2)));
-        assertThat(actualCWRequest.getAlarmNames(), hasItem("table1 Read"));
-        assertThat(actualCWRequest.getAlarmNames(), hasItem("table1 Write"));
+        assertThat(actualCWRequest.getAlarmNames().size(), is(equalTo(1)));
+        assertThat(actualCWRequest.getAlarmNames(), hasItem("SNS Notification Failure-topic1"));
     }
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, false);
+        terminateSnsResources.terminateResource(TEST_REGION, "sns", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
-        verifyZeroInteractions(dynamoDBClient);
+        verifyZeroInteractions(snsClient);
     }
 }

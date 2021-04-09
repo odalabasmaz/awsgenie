@@ -50,7 +50,6 @@ public class TerminateSqsResources implements TerminateResources {
 
         // Resources to be removed
         LinkedHashSet<String> queuesToDelete = new LinkedHashSet<>();
-        //LinkedHashSet<String> dlqsToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> lambdaTriggersToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> snsSubscriptionsToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();

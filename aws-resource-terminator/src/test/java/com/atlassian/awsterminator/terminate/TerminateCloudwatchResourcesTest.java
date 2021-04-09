@@ -76,6 +76,7 @@ public class TerminateCloudwatchResourcesTest {
 
         ArgumentCaptor<DeleteAlarmsRequest> captor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
         verify(cloudWatchClient).deleteAlarms(captor.capture());
+        verifyNoMoreInteractions(cloudWatchClient);
         DeleteAlarmsRequest actualRequest = captor.getValue();
         assertThat(actualRequest.getAlarmNames(), hasItem("Alarm res1"));
         assertThat(actualRequest.getAlarmNames(), hasItem("Alarm res2"));

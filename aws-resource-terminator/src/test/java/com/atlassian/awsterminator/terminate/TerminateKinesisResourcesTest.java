@@ -106,6 +106,7 @@ public class TerminateKinesisResourcesTest {
 
         ArgumentCaptor<DeleteAlarmsRequest> captor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
         verify(cloudWatchClient).deleteAlarms(captor.capture());
+        verifyNoMoreInteractions(cloudWatchClient);
         DeleteAlarmsRequest actualRequest = captor.getValue();
         assertThat(actualRequest.getAlarmNames(), hasItem("Kinesis stream stream1 is Read throttled."));
         assertThat(actualRequest.getAlarmNames(), hasItem("Kinesis stream stream1 is Write throttled."));
