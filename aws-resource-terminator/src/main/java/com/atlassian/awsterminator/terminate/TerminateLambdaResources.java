@@ -30,6 +30,9 @@ import java.util.List;
  * @version 10.03.2021
  */
 
+// TODO (Generic, not specific to this class): Enumerate given resources instead of fetcher results,
+// and log warning if a resource not found.
+
 public class TerminateLambdaResources implements TerminateResources {
     private static final Logger LOGGER = LogManager.getLogger(TerminateLambdaResources.class);
 
@@ -71,7 +74,7 @@ public class TerminateLambdaResources implements TerminateResources {
             snsTriggersToDelete.addAll(lambdaResource.getSnsTriggersToDelete());
             cloudwatchRulesToDelete.addAll(lambdaResource.getCloudwatchRulesToDelete());
             cloudwatchRuleTargetsToDelete.addAll(lambdaResource.getCloudwatchRuleTargetsToDelete());
-            eventSourceMappingsToDelete.addAll(lambdaResource.getCloudwatchRuleTargetsToDelete());
+            eventSourceMappingsToDelete.addAll(lambdaResource.getEventSourceMappingsToDelete());
         }
 
         StringBuilder info = new StringBuilder()
