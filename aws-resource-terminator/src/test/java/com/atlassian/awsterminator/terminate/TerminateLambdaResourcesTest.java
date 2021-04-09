@@ -10,6 +10,9 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
 import com.amazonaws.services.sns.AmazonSNS;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -90,10 +93,18 @@ public class TerminateLambdaResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateLambdaResources terminateLambdaResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateLambdaResources = new TerminateLambdaResources(credentialsProvider);
         terminateLambdaResources.setCloudWatchClient(cloudWatchClient);
         terminateLambdaResources.setCloudWatchEventsClient(cloudWatchEventsClient);
@@ -134,5 +145,14 @@ public class TerminateLambdaResourcesTest {
         verifyZeroInteractions(cloudWatchEventsClient);
         verifyZeroInteractions(snsClient);
         verifyZeroInteractions(cloudWatchClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateLambdaResources.terminateResource(TEST_REGION, "lambda", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("lambda"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("lambda"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

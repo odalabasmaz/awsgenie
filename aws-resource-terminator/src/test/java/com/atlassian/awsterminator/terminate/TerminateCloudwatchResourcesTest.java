@@ -3,6 +3,9 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -56,10 +59,18 @@ public class TerminateCloudwatchResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateCloudwatchResources terminateCloudwatchResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateCloudwatchResources = new TerminateCloudwatchResources(credentialsProvider);
         terminateCloudwatchResources.setCloudWatchClient(cloudWatchClient);
         terminateCloudwatchResources.setFetchResourceFactory(fetchResourceFactory);
@@ -87,5 +98,14 @@ public class TerminateCloudwatchResourcesTest {
     public void terminateResourcesWithoutApply() throws Exception {
         terminateCloudwatchResources.terminateResource(TEST_REGION, "cloudwatch", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateCloudwatchResources.terminateResource(TEST_REGION, "cloudwatch", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("cloudwatch"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("cloudwatch"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

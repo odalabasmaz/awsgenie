@@ -4,6 +4,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -21,6 +24,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 
@@ -71,10 +75,18 @@ public class TerminateDynamoDBResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateDynamoDBResources terminateDynamoDBResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateDynamoDBResources = new TerminateDynamoDBResources(credentialsProvider);
         terminateDynamoDBResources.setCloudWatchClient(cloudWatchClient);
         terminateDynamoDBResources.setDynamoDBClient(dynamoDBClient);
@@ -90,7 +102,6 @@ public class TerminateDynamoDBResourcesTest {
     public void terminateResourcesWithApply() throws Exception {
         terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, true);
 
-        ArgumentCaptor<String> ddbCaptor = ArgumentCaptor.forClass(String.class);
         verify(dynamoDBClient).deleteTable("table1");
         verify(dynamoDBClient).deleteTable("table3");
         verifyNoMoreInteractions(dynamoDBClient);
@@ -109,5 +120,14 @@ public class TerminateDynamoDBResourcesTest {
         terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
         verifyZeroInteractions(dynamoDBClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("dynamodb"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("dynamodb"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

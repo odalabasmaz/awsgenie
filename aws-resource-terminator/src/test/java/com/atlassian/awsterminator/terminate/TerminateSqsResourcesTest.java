@@ -7,6 +7,9 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -84,10 +87,18 @@ public class TerminateSqsResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateSqsResources terminateSqsResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateSqsResources = new TerminateSqsResources(credentialsProvider);
         terminateSqsResources.setCloudWatchClient(cloudWatchClient);
         terminateSqsResources.setSnsClient(snsClient);
@@ -129,5 +140,14 @@ public class TerminateSqsResourcesTest {
         verifyZeroInteractions(snsClient);
         verifyZeroInteractions(sqsClient);
         verifyZeroInteractions(lambdaClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateSqsResources.terminateResource(TEST_REGION, "sqs", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("sqs"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("sqs"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
     }
 }

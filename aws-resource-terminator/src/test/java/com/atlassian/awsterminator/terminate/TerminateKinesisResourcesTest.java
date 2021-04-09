@@ -4,6 +4,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.kinesis.AmazonKinesis;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -81,10 +84,18 @@ public class TerminateKinesisResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateKinesisResources terminateKinesisResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateKinesisResources = new TerminateKinesisResources(credentialsProvider);
         terminateKinesisResources.setCloudWatchClient(cloudWatchClient);
         terminateKinesisResources.setKinesisClient(kinesisClient);
@@ -120,5 +131,14 @@ public class TerminateKinesisResourcesTest {
         terminateKinesisResources.terminateResource(TEST_REGION, "kinesis", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(kinesisClient);
         verifyZeroInteractions(cloudWatchClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateKinesisResources.terminateResource(TEST_REGION, "kinesis", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("kinesis"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("kinesis"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

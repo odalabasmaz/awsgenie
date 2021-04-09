@@ -1,6 +1,7 @@
 package com.atlassian.awsterminator.interceptor;
 
 import com.atlassian.awstool.terminate.AWSResource;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -19,6 +20,12 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class InterceptorRegistryTest {
+    @Before
+    public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
+    }
+
     @Test
     public void addInterceptor() throws Exception {
         InterceptorRegistry.addInterceptor(new TestBeforeInterceptor());

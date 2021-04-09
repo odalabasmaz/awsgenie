@@ -3,6 +3,9 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -62,10 +65,18 @@ public class TerminateIamPolicyResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateIamPolicyResources terminateIamPolicyResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateIamPolicyResources = new TerminateIamPolicyResources(credentialsProvider);
         terminateIamPolicyResources.setIAMClient(iamClient);
         terminateIamPolicyResources.setFetchResourceFactory(fetchResourceFactory);
@@ -91,5 +102,14 @@ public class TerminateIamPolicyResourcesTest {
     public void terminateResourcesWithoutApply() throws Exception {
         terminateIamPolicyResources.terminateResource(TEST_REGION, "iamPolicy", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(iamClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateIamPolicyResources.terminateResource(TEST_REGION, "iamPolicy", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("iamPolicy"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("iamPolicy"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

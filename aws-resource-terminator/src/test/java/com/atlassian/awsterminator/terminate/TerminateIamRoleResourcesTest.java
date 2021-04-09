@@ -3,6 +3,9 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
+import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -62,10 +65,18 @@ public class TerminateIamRoleResourcesTest {
     @Mock
     private FetchResources fetchResources;
 
+    @Mock
+    private BeforeTerminateInterceptor beforeTerminateInterceptor;
+
+    @Mock
+    private AfterTerminateInterceptor afterTerminateInterceptor;
+
     private TerminateIamRoleResources terminateIamRoleResources;
 
     @Before
     public void setUp() throws Exception {
+        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
+        InterceptorRegistry.getAfterTerminateInterceptors().clear();
         this.terminateIamRoleResources = new TerminateIamRoleResources(credentialsProvider);
         terminateIamRoleResources.setIAMClient(iamClient);
         terminateIamRoleResources.setFetchResourceFactory(fetchResourceFactory);
@@ -91,5 +102,14 @@ public class TerminateIamRoleResourcesTest {
     public void terminateResourcesWithoutApply() throws Exception {
         terminateIamRoleResources.terminateResource(TEST_REGION, "iamRole", TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(iamClient);
+    }
+
+    @Test
+    public void interceptorsAreCalled() throws Exception {
+        InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
+        InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
+        terminateIamRoleResources.terminateResource(TEST_REGION, "iamRole", TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq("iamRole"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq("iamRole"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }
