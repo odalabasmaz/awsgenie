@@ -6,6 +6,7 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
@@ -103,10 +104,16 @@ public class TerminateIamPolicyResources implements TerminateResources {
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, iamPolicyResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
             policiesToDelete.forEach(r -> iamClient.deletePolicy(new DeletePolicyRequest().withPolicyArn(r)));
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, iamPolicyResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }

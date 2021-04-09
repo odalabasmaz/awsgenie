@@ -4,6 +4,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
@@ -74,10 +75,16 @@ public class TerminateIamRoleResources implements TerminateResources {
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
             rolesToDelete.forEach(r -> iamClient.deleteRole(new DeleteRoleRequest().withRoleName(r)));
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }

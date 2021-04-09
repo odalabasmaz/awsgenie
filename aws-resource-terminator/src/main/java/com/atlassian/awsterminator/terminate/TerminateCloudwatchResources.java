@@ -4,6 +4,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
@@ -53,12 +54,18 @@ public class TerminateCloudwatchResources implements TerminateResources {
                 .append("* Cloudwatch alarms not found: ").append(cloudwatchAlarmsNotToDelete).append("\n");
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, cloudwatchResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
             if (!cloudwatchAlarmsToDelete.isEmpty()) {
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, cloudwatchResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }

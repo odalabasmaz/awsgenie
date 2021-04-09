@@ -6,6 +6,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
@@ -51,9 +52,9 @@ public class TerminateDynamoDBResources implements TerminateResources {
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = new FetchResourceFactory().getFetcher("dynamodb", credentialsProvider);
-        List<DynamodbResource> cloudwatchResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, resources, details);
+        List<DynamodbResource> dynamodbResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, resources, details);
 
-        for (DynamodbResource dynamodbResource : cloudwatchResourceList) {
+        for (DynamodbResource dynamodbResource : dynamodbResourceList) {
             if (dynamodbResource.getTotalUsage() > 0) {
                 details.add("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + dynamodbResource.getTotalUsage() + "]");
                 LOGGER.warn("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + dynamodbResource.getTotalUsage() + "]");
@@ -73,6 +74,9 @@ public class TerminateDynamoDBResources implements TerminateResources {
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
+        InterceptorRegistry.getBeforeTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, dynamodbResourceList, info.toString(), apply));
+
         if (apply) {
             LOGGER.info("Terminating the resources...");
 
@@ -82,6 +86,9 @@ public class TerminateDynamoDBResources implements TerminateResources {
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
+
+        InterceptorRegistry.getAfterTerminateInterceptors()
+                .forEach(interceptor -> interceptor.intercept(service, dynamodbResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }
