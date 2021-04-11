@@ -17,6 +17,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.lambda.LambdaResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +34,7 @@ import java.util.List;
 // TODO (Generic, not specific to this class): Enumerate given resources instead of fetcher results,
 // and log warning if a resource not found.
 
-public class TerminateLambdaResources implements TerminateResources {
+public class TerminateLambdaResources implements TerminateResources<LambdaResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateLambdaResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -41,14 +42,14 @@ public class TerminateLambdaResources implements TerminateResources {
     private AmazonSNS snsClient;
     private AWSLambda lambdaClient;
     private AmazonCloudWatchEvents cloudWatchEventsClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<LambdaResource> fetchResourceFactory;
 
     public TerminateLambdaResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = getSnsClient(region);
         AWSLambda lambdaClient = getLambdaClient(region);
@@ -65,8 +66,8 @@ public class TerminateLambdaResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetchResources = getFetchResourceFactory().getFetcher("lambda", credentialsProvider);
-        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, resources, details);
+        FetchResources<LambdaResource> fetchResources = getFetchResourceFactory().getFetcher(Service.LAMBDA, credentialsProvider);
+        List<LambdaResource> lambdaResourceList = fetchResources.fetchResources(region, resources, details);
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());
@@ -186,15 +187,15 @@ public class TerminateLambdaResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<LambdaResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    private FetchResourceFactory<LambdaResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

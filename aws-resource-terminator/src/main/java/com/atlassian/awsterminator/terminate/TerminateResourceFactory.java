@@ -1,6 +1,7 @@
 package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.atlassian.awstool.terminate.Service;
 
 import javax.naming.OperationNotSupportedException;
 
@@ -10,22 +11,22 @@ import javax.naming.OperationNotSupportedException;
  */
 
 public class TerminateResourceFactory {
-    public TerminateResources getTerminator(String service, AWSCredentialsProvider credentialsProvider) throws OperationNotSupportedException {
-        if ("sqs".equalsIgnoreCase(service)) {
+    public TerminateResources getTerminator(Service service, AWSCredentialsProvider credentialsProvider) throws OperationNotSupportedException {
+        if (Service.SQS.equals(service)) {
             return new TerminateSqsResources(credentialsProvider);
-        } else if ("cloudwatch".equalsIgnoreCase(service)) {
+        } else if (Service.CLOUDWATCH.equals(service)) {
             return new TerminateCloudwatchResources(credentialsProvider);
-        } else if ("lambda".equalsIgnoreCase(service)) {
+        } else if (Service.LAMBDA.equals(service)) {
             return new TerminateLambdaResources(credentialsProvider);
-        } else if ("dynamodb".equalsIgnoreCase(service)) {
+        } else if (Service.DYNAMODB.equals(service)) {
             return new TerminateDynamoDBResources(credentialsProvider);
-        } else if ("sns".equalsIgnoreCase(service)) {
+        } else if (Service.SNS.equals(service)) {
             return new TerminateSnsResources(credentialsProvider);
-        } else if ("iamRole".equalsIgnoreCase(service)) {
+        } else if (Service.IAM_ROLE.equals(service)) {
             return new TerminateIamRoleResources(credentialsProvider);
-        } else if ("iamPolicy".equalsIgnoreCase(service)) {
+        } else if (Service.IAM_POLICY.equals(service)) {
             return new TerminateIamPolicyResources(credentialsProvider);
-        } else if ("kinesis".equalsIgnoreCase(service)) {
+        } else if (Service.KINESIS.equals(service)) {
             return new TerminateKinesisResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);

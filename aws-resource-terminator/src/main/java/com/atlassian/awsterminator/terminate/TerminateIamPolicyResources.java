@@ -7,6 +7,7 @@ import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,12 +24,12 @@ import java.util.concurrent.TimeUnit;
  * @version 06.04.2021
  */
 
-public class TerminateIamPolicyResources implements TerminateResources {
+public class TerminateIamPolicyResources implements TerminateResources<IAMPolicyResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateIamPolicyResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
     private AmazonIdentityManagement iamClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<IAMPolicyResource> fetchResourceFactory;
 
     public TerminateIamPolicyResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -36,7 +37,7 @@ public class TerminateIamPolicyResources implements TerminateResources {
 
     @Override
     public void terminateResource(String region,
-                                  String service, List<String> resources, String ticket, boolean apply) throws Exception {
+                                  Service service, List<String> resources, String ticket, boolean apply) throws Exception {
 
         AmazonIdentityManagement iamClient = getIAMClient(region);
 
@@ -49,8 +50,8 @@ public class TerminateIamPolicyResources implements TerminateResources {
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher("iamPolicy", credentialsProvider);
-        List<IAMPolicyResource> iamPolicyResourceList = (List<IAMPolicyResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<IAMPolicyResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_POLICY, credentialsProvider);
+        List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
             if (iamPolicyResource.getLastUsedDate() != null && iamPolicyResource.getLastUsedDate().after(referenceDate)) {
@@ -58,6 +59,7 @@ public class TerminateIamPolicyResources implements TerminateResources {
                 LOGGER.warn("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(iamPolicyResource.getLastUsedDate()) + "]");
                 continue;
             }
+            details.add("IAM Policy will be deleted: " + iamPolicyResource.getResourceName());
             policiesToDelete.add(iamPolicyResource.getResourceName());
         }
 
@@ -100,15 +102,16 @@ public class TerminateIamPolicyResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<IAMPolicyResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    //TODO: we can centralize these functions which are same for all services..
+    private FetchResourceFactory<IAMPolicyResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

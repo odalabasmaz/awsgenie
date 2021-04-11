@@ -6,7 +6,6 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.*;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +19,7 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchIAMPolicyResources implements FetchResources {
+public class FetchIAMPolicyResources implements FetchResources<IAMPolicyResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchIAMPolicyResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -30,7 +29,6 @@ public class FetchIAMPolicyResources implements FetchResources {
         this.credentialsProvider = credentialsProvider;
         this.iamClientMap = new HashMap<>();
     }
-
 
     @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
@@ -42,9 +40,8 @@ public class FetchIAMPolicyResources implements FetchResources {
         });
     }
 
-
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<IAMPolicyResource> fetchResources(String region, List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
@@ -82,8 +79,7 @@ public class FetchIAMPolicyResources implements FetchResources {
         return iamPolicyResourceList;
     }
 
-
-    public static String generatePolicyArn(String policyName, String accountId) {
+    private static String generatePolicyArn(String policyName, String accountId) {
         return "arn:aws:iam::" + accountId + ":policy/" + policyName;
     }
 

@@ -9,6 +9,7 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,20 +23,20 @@ import java.util.List;
  * @version 7.04.2021
  */
 
-public class TerminateKinesisResources implements TerminateResources {
+public class TerminateKinesisResources implements TerminateResources<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateKinesisResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
     private AmazonCloudWatch cloudWatchClient;
     private AmazonKinesis kinesisClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<KinesisResource> fetchResourceFactory;
 
     public TerminateKinesisResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonKinesis kinesisClient = getKinesisClient(region);
         AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
@@ -45,8 +46,8 @@ public class TerminateKinesisResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher("kinesis", credentialsProvider);
-        List<KinesisResource> kinesisResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<KinesisResource> fetcher = getFetchResourceFactory().getFetcher(Service.KINESIS, credentialsProvider);
+        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
             if (kinesisResource.getTotalUsage() > 0) {
@@ -122,15 +123,15 @@ public class TerminateKinesisResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<KinesisResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    private FetchResourceFactory<KinesisResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

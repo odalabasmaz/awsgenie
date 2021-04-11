@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchCloudwatchResources implements FetchResources {
+public class FetchCloudwatchResources implements FetchResources<CloudwatchResource> {
     private final AWSCredentialsProvider credentialsProvider;
 
     public FetchCloudwatchResources(AWSCredentialsProvider credentialsProvider) {
@@ -43,7 +43,7 @@ public class FetchCloudwatchResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<CloudwatchResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)

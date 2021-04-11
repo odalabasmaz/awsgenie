@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSQSResources implements FetchResources {
+public class FetchSQSResources implements FetchResources<SQSResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchSQSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -44,7 +44,7 @@ public class FetchSQSResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AmazonSQSClient
                 .builder()
                 .withRegion(region)

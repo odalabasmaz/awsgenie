@@ -14,6 +14,7 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.sqs.SQSResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +28,7 @@ import java.util.List;
  * @version 10.03.2021
  */
 
-public class TerminateSqsResources implements TerminateResources {
+public class TerminateSqsResources implements TerminateResources<SQSResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateSqsResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -35,14 +36,14 @@ public class TerminateSqsResources implements TerminateResources {
     private AmazonCloudWatch cloudWatchClient;
     private AmazonSNS snsClient;
     private AWSLambda lambdaClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<SQSResource> fetchResourceFactory;
 
     public TerminateSqsResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonSQS sqsClient = getSqsClient(region);
         AmazonSNS snsClient = getSnsClient(region);
         AWSLambda lambdaClient = getLambdaClient(region);
@@ -56,8 +57,8 @@ public class TerminateSqsResources implements TerminateResources {
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher("sqs", credentialsProvider);
-        List<SQSResource> sqsResourceList = (List<SQSResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<SQSResource> fetcher = getFetchResourceFactory().getFetcher(Service.SQS, credentialsProvider);
+        List<SQSResource> sqsResourceList = fetcher.fetchResources(region, resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
             queuesToDelete.add(sqsResource.getResourceName());
             lambdaTriggersToDelete.addAll(sqsResource.getLambdaTriggers());
@@ -164,15 +165,15 @@ public class TerminateSqsResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<SQSResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    private FetchResourceFactory<SQSResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

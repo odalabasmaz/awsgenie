@@ -1,6 +1,15 @@
 package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.atlassian.awstool.terminate.Service;
+import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
+import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
+import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
+import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
+import com.atlassian.awstool.terminate.kinesis.KinesisResource;
+import com.atlassian.awstool.terminate.lambda.LambdaResource;
+import com.atlassian.awstool.terminate.sns.SNSResource;
+import com.atlassian.awstool.terminate.sqs.SQSResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,26 +42,26 @@ public class TerminateResourceFactoryTest {
 
     @Test
     public void getTerminator() throws Exception {
-        TerminateResources sqs = terminateResourceFactory.getTerminator("sqs", credentialsProvider);
+        TerminateResources<SQSResource> sqs = terminateResourceFactory.getTerminator(Service.SQS, credentialsProvider);
         assertThat(sqs, is(instanceOf(TerminateSqsResources.class)));
-        TerminateResources cloudwatch = terminateResourceFactory.getTerminator("cloudwatch", credentialsProvider);
+        TerminateResources<CloudwatchResource> cloudwatch = terminateResourceFactory.getTerminator(Service.CLOUDWATCH, credentialsProvider);
         assertThat(cloudwatch, is(instanceOf(TerminateCloudwatchResources.class)));
-        TerminateResources lambda = terminateResourceFactory.getTerminator("lambda", credentialsProvider);
+        TerminateResources<LambdaResource> lambda = terminateResourceFactory.getTerminator(Service.LAMBDA, credentialsProvider);
         assertThat(lambda, is(instanceOf(TerminateLambdaResources.class)));
-        TerminateResources dynamodb = terminateResourceFactory.getTerminator("dynamodb", credentialsProvider);
+        TerminateResources<DynamodbResource> dynamodb = terminateResourceFactory.getTerminator(Service.DYNAMODB, credentialsProvider);
         assertThat(dynamodb, is(instanceOf(TerminateDynamoDBResources.class)));
-        TerminateResources sns = terminateResourceFactory.getTerminator("sns", credentialsProvider);
+        TerminateResources<SNSResource> sns = terminateResourceFactory.getTerminator(Service.SNS, credentialsProvider);
         assertThat(sns, is(instanceOf(TerminateSnsResources.class)));
-        TerminateResources iamRole = terminateResourceFactory.getTerminator("iamRole", credentialsProvider);
+        TerminateResources<IAMRoleResource> iamRole = terminateResourceFactory.getTerminator(Service.IAM_ROLE, credentialsProvider);
         assertThat(iamRole, is(instanceOf(TerminateIamRoleResources.class)));
-        TerminateResources iamPolicy = terminateResourceFactory.getTerminator("iamPolicy", credentialsProvider);
+        TerminateResources<IAMPolicyResource> iamPolicy = terminateResourceFactory.getTerminator(Service.IAM_POLICY, credentialsProvider);
         assertThat(iamPolicy, is(instanceOf(TerminateIamPolicyResources.class)));
-        TerminateResources kinesis = terminateResourceFactory.getTerminator("kinesis", credentialsProvider);
+        TerminateResources<KinesisResource> kinesis = terminateResourceFactory.getTerminator(Service.KINESIS, credentialsProvider);
         assertThat(kinesis, is(instanceOf(TerminateKinesisResources.class)));
     }
 
     @Test(expected = OperationNotSupportedException.class)
     public void getTerminatorWithInvalidService() throws Exception {
-        terminateResourceFactory.getTerminator("invalid", credentialsProvider);
+        terminateResourceFactory.getTerminator(Service.CLOUDFRONT, credentialsProvider);
     }
 }

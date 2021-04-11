@@ -13,6 +13,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.sqs.SQSResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.*;
 public class TerminateSqsResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.SQS;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("queue1");
@@ -106,7 +108,7 @@ public class TerminateSqsResourcesTest {
         terminateSqsResources.setSqsClient(sqsClient);
         terminateSqsResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("sqs", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -114,7 +116,7 @@ public class TerminateSqsResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateSqsResources.terminateResource(TEST_REGION, "sqs", TEST_RESOURCES, TEST_TICKET, true);
+        terminateSqsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         verify(lambdaClient).deleteEventSourceMapping(new DeleteEventSourceMappingRequest().withUUID("lambda1"));
         verifyNoMoreInteractions(lambdaClient);
@@ -135,7 +137,7 @@ public class TerminateSqsResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateSqsResources.terminateResource(TEST_REGION, "sqs", TEST_RESOURCES, TEST_TICKET, false);
+        terminateSqsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
         verifyZeroInteractions(snsClient);
         verifyZeroInteractions(sqsClient);
@@ -146,8 +148,8 @@ public class TerminateSqsResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateSqsResources.terminateResource(TEST_REGION, "sqs", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("sqs"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("sqs"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        terminateSqsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
     }
 }

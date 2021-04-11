@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSNSResources implements FetchResources {
+public class FetchSNSResources implements FetchResources<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchSNSResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -37,7 +37,7 @@ public class FetchSNSResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
                 .withRegion(region)

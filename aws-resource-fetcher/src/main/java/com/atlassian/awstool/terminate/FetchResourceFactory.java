@@ -17,24 +17,27 @@ import javax.naming.OperationNotSupportedException;
  * @version 10.03.2021
  */
 
-public class FetchResourceFactory {
-    public FetchResources getFetcher(String service, AWSCredentialsProvider credentialsProvider) throws OperationNotSupportedException {
-        if ("lambda".equalsIgnoreCase(service)) {
-            return new FetchLambdaResources(credentialsProvider);
-        } else if ("cloudwatch".equalsIgnoreCase(service)) {
-            return new FetchCloudwatchResources(credentialsProvider);
-        } else if ("dynamodb".equalsIgnoreCase(service)) {
-            return new FetchDynamodbResources(credentialsProvider);
-        } else if ("sqs".equalsIgnoreCase(service)) {
-            return new FetchSQSResources(credentialsProvider);
-        } else if ("iamRole".equalsIgnoreCase(service)) {
-            return new FetchIAMRoleResources(credentialsProvider);
-        } else if ("iamPolicy".equalsIgnoreCase(service)) {
-            return new FetchIAMPolicyResources(credentialsProvider);
-        } else if ("sns".equalsIgnoreCase(service)) {
-            return new FetchSNSResources(credentialsProvider);
-        } else if ("kinesis".equalsIgnoreCase(service)) {
-            return new FetchKinesisResources(credentialsProvider);
+public class FetchResourceFactory<R extends AWSResource> {
+
+    public FetchResources<R> getFetcher(Service service, AWSCredentialsProvider credentialsProvider)
+            throws OperationNotSupportedException {
+
+        if (Service.LAMBDA.equals(service)) {
+            return (FetchResources<R>) new FetchLambdaResources(credentialsProvider);
+        } else if (Service.CLOUDWATCH.equals(service)) {
+            return (FetchResources<R>) new FetchCloudwatchResources(credentialsProvider);
+        } else if (Service.DYNAMODB.equals(service)) {
+            return (FetchResources<R>) new FetchDynamodbResources(credentialsProvider);
+        } else if (Service.SQS.equals(service)) {
+            return (FetchResources<R>) new FetchSQSResources(credentialsProvider);
+        } else if (Service.IAM_ROLE.equals(service)) {
+            return (FetchResources<R>) new FetchIAMRoleResources(credentialsProvider);
+        } else if (Service.IAM_POLICY.equals(service)) {
+            return (FetchResources<R>) new FetchIAMPolicyResources(credentialsProvider);
+        } else if (Service.SNS.equals(service)) {
+            return (FetchResources<R>) new FetchSNSResources(credentialsProvider);
+        } else if (Service.KINESIS.equals(service)) {
+            return (FetchResources<R>) new FetchKinesisResources(credentialsProvider);
         } else {
             throw new OperationNotSupportedException("Service not supported: " + service);
         }

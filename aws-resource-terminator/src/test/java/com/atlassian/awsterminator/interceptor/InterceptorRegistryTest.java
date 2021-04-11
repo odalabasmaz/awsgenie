@@ -1,6 +1,7 @@
 package com.atlassian.awsterminator.interceptor;
 
 import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.Service;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,23 +42,23 @@ public class InterceptorRegistryTest {
         InterceptorRegistry.addInterceptor(new TestUnsupportedInterceptor());
     }
 
-    class TestBeforeInterceptor implements BeforeTerminateInterceptor {
+    static class TestBeforeInterceptor implements BeforeTerminateInterceptor {
         @Override
-        public void intercept(String service, List<? extends AWSResource> resources, String info, boolean apply) {
+        public void intercept(Service service, List<? extends AWSResource> resources, String info, boolean apply) {
 
         }
     }
 
-    class TestAfterInterceptor implements AfterTerminateInterceptor {
+    static class TestAfterInterceptor implements AfterTerminateInterceptor {
         @Override
-        public void intercept(String service, List<? extends AWSResource> resources, String info, boolean apply) {
+        public void intercept(Service service, List<? extends AWSResource> resources, String info, boolean apply) {
 
         }
     }
 
-    class TestUnsupportedInterceptor implements TerminateInterceptor {
+    static class TestUnsupportedInterceptor implements TerminateInterceptor {
         @Override
-        public void intercept(String service, List<? extends AWSResource> resources, String info, boolean apply) {
+        public void intercept(Service service, List<? extends AWSResource> resources, String info, boolean apply) {
 
         }
     }

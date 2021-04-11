@@ -10,6 +10,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.*;
 public class TerminateKinesisResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.KINESIS;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("stream1");
@@ -101,7 +103,7 @@ public class TerminateKinesisResourcesTest {
         terminateKinesisResources.setKinesisClient(kinesisClient);
         terminateKinesisResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("kinesis", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -109,7 +111,7 @@ public class TerminateKinesisResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateKinesisResources.terminateResource(TEST_REGION, "kinesis", TEST_RESOURCES, TEST_TICKET, true);
+        terminateKinesisResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         verify(kinesisClient).deleteStream("stream1");
         verify(kinesisClient).deleteStream("stream2");
@@ -128,7 +130,7 @@ public class TerminateKinesisResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateKinesisResources.terminateResource(TEST_REGION, "kinesis", TEST_RESOURCES, TEST_TICKET, false);
+        terminateKinesisResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(kinesisClient);
         verifyZeroInteractions(cloudWatchClient);
     }
@@ -137,8 +139,8 @@ public class TerminateKinesisResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateKinesisResources.terminateResource(TEST_REGION, "kinesis", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("kinesis"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("kinesis"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        terminateKinesisResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

@@ -10,6 +10,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.*;
 public class TerminateDynamoDBResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.DYNAMODB;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("table1");
@@ -92,7 +94,7 @@ public class TerminateDynamoDBResourcesTest {
         terminateDynamoDBResources.setDynamoDBClient(dynamoDBClient);
         terminateDynamoDBResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("dynamodb", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -100,7 +102,7 @@ public class TerminateDynamoDBResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, true);
+        terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         verify(dynamoDBClient).deleteTable("table1");
         verify(dynamoDBClient).deleteTable("table3");
@@ -117,7 +119,7 @@ public class TerminateDynamoDBResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, false);
+        terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
         verifyZeroInteractions(dynamoDBClient);
     }
@@ -126,8 +128,8 @@ public class TerminateDynamoDBResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateDynamoDBResources.terminateResource(TEST_REGION, "dynamodb", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("dynamodb"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("dynamodb"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

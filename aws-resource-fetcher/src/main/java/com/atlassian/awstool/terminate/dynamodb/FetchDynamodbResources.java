@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  * @version 10.03.2021
  */
 
-public class FetchDynamodbResources implements FetchResources {
+public class FetchDynamodbResources implements FetchResources<DynamodbResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -34,7 +34,6 @@ public class FetchDynamodbResources implements FetchResources {
         this.credentialsProvider = credentialsProvider;
         this.dynamoClientMap = new HashMap<>();
     }
-
 
     @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
@@ -46,7 +45,7 @@ public class FetchDynamodbResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<DynamodbResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AmazonDynamoDBClient
                 .builder()
                 .withRegion(region)

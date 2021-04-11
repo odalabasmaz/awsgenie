@@ -9,6 +9,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.*;
 public class TerminateIamPolicyResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.IAM_POLICY;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("policy1");
@@ -81,7 +83,7 @@ public class TerminateIamPolicyResourcesTest {
         terminateIamPolicyResources.setIAMClient(iamClient);
         terminateIamPolicyResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("iamPolicy", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -89,7 +91,7 @@ public class TerminateIamPolicyResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateIamPolicyResources.terminateResource(TEST_REGION, "iamPolicy", TEST_RESOURCES, TEST_TICKET, true);
+        terminateIamPolicyResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         ArgumentCaptor<DeletePolicyRequest> captor = ArgumentCaptor.forClass(DeletePolicyRequest.class);
         verify(iamClient).deletePolicy(captor.capture());
@@ -100,7 +102,7 @@ public class TerminateIamPolicyResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateIamPolicyResources.terminateResource(TEST_REGION, "iamPolicy", TEST_RESOURCES, TEST_TICKET, false);
+        terminateIamPolicyResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(iamClient);
     }
 
@@ -108,8 +110,8 @@ public class TerminateIamPolicyResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateIamPolicyResources.terminateResource(TEST_REGION, "iamPolicy", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("iamPolicy"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("iamPolicy"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        terminateIamPolicyResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

@@ -9,6 +9,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,20 +24,20 @@ import java.util.List;
  * @version 6.04.2021
  */
 
-public class TerminateSnsResources implements TerminateResources {
+public class TerminateSnsResources implements TerminateResources<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateSnsResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
     private AmazonCloudWatch cloudWatchClient;
     private AmazonSNS snsClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<SNSResource> fetchResourceFactory;
 
     public TerminateSnsResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonSNS snsClient = getSnsClient(region);
         AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
@@ -44,8 +45,8 @@ public class TerminateSnsResources implements TerminateResources {
         HashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher("sns", credentialsProvider);
-        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<SNSResource> fetcher = getFetchResourceFactory().getFetcher(Service.SNS, credentialsProvider);
+        List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
             if (snsResource.getPublishCountInLastWeek() > 0) {
@@ -118,15 +119,15 @@ public class TerminateSnsResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<SNSResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    private FetchResourceFactory<SNSResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

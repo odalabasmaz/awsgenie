@@ -9,6 +9,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.*;
 public class TerminateCloudwatchResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.CLOUDWATCH;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("Alarm res1");
@@ -75,7 +77,7 @@ public class TerminateCloudwatchResourcesTest {
         terminateCloudwatchResources.setCloudWatchClient(cloudWatchClient);
         terminateCloudwatchResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("cloudwatch", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(TEST_REGION, TEST_RESOURCES, null);
@@ -83,7 +85,7 @@ public class TerminateCloudwatchResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateCloudwatchResources.terminateResource(TEST_REGION, "cloudwatch", TEST_RESOURCES, TEST_TICKET, true);
+        terminateCloudwatchResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         ArgumentCaptor<DeleteAlarmsRequest> captor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
         verify(cloudWatchClient).deleteAlarms(captor.capture());
@@ -96,7 +98,7 @@ public class TerminateCloudwatchResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateCloudwatchResources.terminateResource(TEST_REGION, "cloudwatch", TEST_RESOURCES, TEST_TICKET, false);
+        terminateCloudwatchResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
     }
 
@@ -104,8 +106,8 @@ public class TerminateCloudwatchResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateCloudwatchResources.terminateResource(TEST_REGION, "cloudwatch", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("cloudwatch"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("cloudwatch"), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        terminateCloudwatchResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
     }
 }

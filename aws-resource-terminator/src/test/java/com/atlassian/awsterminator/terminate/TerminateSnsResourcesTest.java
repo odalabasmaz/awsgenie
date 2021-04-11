@@ -10,6 +10,7 @@ import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.*;
 public class TerminateSnsResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    private final Service service = Service.SNS;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
         add("topic1");
@@ -91,7 +93,7 @@ public class TerminateSnsResourcesTest {
         terminateSnsResources.setSnsClient(snsClient);
         terminateSnsResources.setFetchResourceFactory(fetchResourceFactory);
 
-        when(fetchResourceFactory.getFetcher("sns", credentialsProvider))
+        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
@@ -99,7 +101,7 @@ public class TerminateSnsResourcesTest {
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateSnsResources.terminateResource(TEST_REGION, "sns", TEST_RESOURCES, TEST_TICKET, true);
+        terminateSnsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         verify(snsClient).deleteTopic("topic1");
         verifyNoMoreInteractions(snsClient);
@@ -114,7 +116,7 @@ public class TerminateSnsResourcesTest {
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
-        terminateSnsResources.terminateResource(TEST_REGION, "sns", TEST_RESOURCES, TEST_TICKET, false);
+        terminateSnsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
         verifyZeroInteractions(cloudWatchClient);
         verifyZeroInteractions(snsClient);
     }
@@ -123,8 +125,8 @@ public class TerminateSnsResourcesTest {
     public void interceptorsAreCalled() throws Exception {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
-        terminateSnsResources.terminateResource(TEST_REGION, "sns", TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq("sns"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq("sns"), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        terminateSnsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
     }
 }

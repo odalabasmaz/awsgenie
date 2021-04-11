@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,23 +21,23 @@ import java.util.Set;
  * @version 10.03.2021
  */
 
-public class TerminateCloudwatchResources implements TerminateResources {
+public class TerminateCloudwatchResources implements TerminateResources<CloudwatchResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateCloudwatchResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
     private AmazonCloudWatch cloudWatchClient;
-    private FetchResourceFactory fetchResourceFactory;
+    private FetchResourceFactory<CloudwatchResource> fetchResourceFactory;
 
     public TerminateCloudwatchResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher("cloudwatch", credentialsProvider);
-        List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, resources, null);
+        FetchResources<CloudwatchResource> fetcher = getFetchResourceFactory().getFetcher(Service.CLOUDWATCH, credentialsProvider);
+        List<CloudwatchResource> cloudwatchResourceList = fetcher.fetchResources(region, resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);
@@ -84,15 +85,15 @@ public class TerminateCloudwatchResources implements TerminateResources {
         }
     }
 
-    void setFetchResourceFactory(FetchResourceFactory fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<CloudwatchResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory getFetchResourceFactory() {
+    private FetchResourceFactory<CloudwatchResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {
-            return new FetchResourceFactory();
+            return new FetchResourceFactory<>();
         }
     }
 }

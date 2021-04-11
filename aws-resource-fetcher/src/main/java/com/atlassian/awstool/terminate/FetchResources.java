@@ -9,12 +9,13 @@ import java.util.function.Function;
  * @version 10.03.2021
  */
 
-public interface FetchResources {
-    List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
+public interface FetchResources<R extends AWSResource> {
+
+    List<R> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
 
     void listResources(String region, Consumer<List<String>> consumer) throws Exception;
 
-    default <T> void consume(Function<String, String> function) {
+    default void consume(Function<String, String> function) {
         String nextMarker = null;
         do {
             nextMarker = function.apply(nextMarker);

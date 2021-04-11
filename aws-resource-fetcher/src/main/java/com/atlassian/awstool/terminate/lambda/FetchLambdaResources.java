@@ -15,7 +15,6 @@ import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +27,7 @@ import java.util.function.Consumer;
  * @version 10.03.2021
  */
 
-public class FetchLambdaResources implements FetchResources {
+public class FetchLambdaResources implements FetchResources<LambdaResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchLambdaResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -39,9 +38,8 @@ public class FetchLambdaResources implements FetchResources {
         this.lambdaClientMap = new HashMap<>();
     }
 
-
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
@@ -87,26 +85,33 @@ public class FetchLambdaResources implements FetchResources {
 
                 // sns & cw triggers
                 try {
-                    Policy policy = policy = Policy.fromJson(lambdaClient.getPolicy(new GetPolicyRequest().withFunctionName(lambdaName)).getPolicy());
+                    Policy policy = Policy.fromJson(lambdaClient.getPolicy(new GetPolicyRequest().withFunctionName(lambdaName)).getPolicy());
                     policy.getStatements().forEach(s -> {
                         String sourceArn = s.getConditions().get(0).getValues().get(0);
                         if (sourceArn.startsWith("arn:aws:sns:")) {
-                            snsClient.listSubscriptionsByTopic(sourceArn).getSubscriptions().stream()
-                                    .filter(subs -> subs.getEndpoint().equals(function.getConfiguration().getFunctionArn()))
-                                    .findFirst().ifPresent(subs -> snsTriggersToDelete.add(subs.getSubscriptionArn()));
-
-                        } else if (sourceArn.startsWith("arn:aws:events:")) {
-                            String ruleName = sourceArn.split("/")[1];
-                            List<Target> targets = cloudWatchEventsClient.listTargetsByRule(new ListTargetsByRuleRequest().withRule(ruleName)).getTargets();
-                            targets.stream()
-                                    .filter(t -> t.getArn().equals(function.getConfiguration().getFunctionArn()))
-                                    .forEach(t -> cloudwatchRuleTargetsToDelete.add(ruleName + ":" + t.getId()));
-                            if (targets.size() == 1) {
-                                cloudwatchRulesToDelete.add(ruleName);
+                            try {
+                                snsClient.listSubscriptionsByTopic(sourceArn).getSubscriptions().stream()
+                                        .filter(subs -> subs.getEndpoint().equals(function.getConfiguration().getFunctionArn()))
+                                        .findFirst().ifPresent(subs -> snsTriggersToDelete.add(subs.getSubscriptionArn()));
+                            } catch (com.amazonaws.services.sns.model.NotFoundException ex) {
+                                LOGGER.warn("Topic seems already deleted: " + sourceArn);
                             }
-
+                        } else if (sourceArn.startsWith("arn:aws:events:")) {
+                            try {
+                                String ruleName = sourceArn.split("/")[1];
+                                List<Target> targets = cloudWatchEventsClient.listTargetsByRule(new ListTargetsByRuleRequest().withRule(ruleName)).getTargets();
+                                targets.stream()
+                                        .filter(t -> t.getArn().equals(function.getConfiguration().getFunctionArn()))
+                                        .forEach(t -> cloudwatchRuleTargetsToDelete.add(ruleName + ":" + t.getId()));
+                                if (targets.size() == 1) {
+                                    cloudwatchRulesToDelete.add(ruleName);
+                                }
+                            } catch (com.amazonaws.services.cloudwatchevents.model.ResourceNotFoundException ex) {
+                                LOGGER.warn("CW trigger seems already deleted: " + sourceArn);
+                            }
                         } else {
                             // unexpected trigger received
+                            //TODO: check if there is another option that we should consider...
                             throw new UnsupportedOperationException("Unsupported trigger found: " + sourceArn);
                         }
                     });
@@ -115,6 +120,7 @@ public class FetchLambdaResources implements FetchResources {
                 }
 
                 // Cloudwatch alarms
+                //TODO: convention is not same for all developers (lambdaName + Lambda), should be generic..
                 cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix(region + " " + lambdaName + " Lambda "))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarmsToDelete::add);
