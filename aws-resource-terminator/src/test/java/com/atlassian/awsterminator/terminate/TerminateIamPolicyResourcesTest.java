@@ -3,6 +3,10 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.ListPoliciesResult;
+import com.amazonaws.services.identitymanagement.model.ListRolePoliciesRequest;
+import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
+import com.amazonaws.services.securitytoken.model.GetCallerIdentityResult;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
@@ -34,8 +38,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateIamPolicyResourcesTest {
+public class TerminateIamPolicyResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     public static final String POLICY_1 = "policy1";
@@ -54,19 +57,6 @@ public class TerminateIamPolicyResourcesTest {
         add(new IAMPolicyResource()
                 .setResourceName(POLICY_2));
     }};
-
-    @Mock
-    private AmazonIdentityManagement iamClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
-
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -77,37 +67,37 @@ public class TerminateIamPolicyResourcesTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         InterceptorRegistry.getBeforeTerminateInterceptors().clear();
         InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateIamPolicyResources = new TerminateIamPolicyResources(credentialsProvider);
-        terminateIamPolicyResources.setIAMClient(iamClient);
-        terminateIamPolicyResources.setFetchResourceFactory(fetchResourceFactory);
-
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        this.terminateIamPolicyResources = new TerminateIamPolicyResources(TerminatorHelper.getRegion1Account1Configuration());
+        this.terminateIamPolicyResources.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate())
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(POLICY_1));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(POLICY_1));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate())
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(POLICY_2));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(POLICY_2));
+        doReturn(new GetCallerIdentityResult().withAccount("account1"))
+                .when(getAmazonSts()).getCallerIdentity(any(GetCallerIdentityRequest.class));
+
+
     }
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
         terminateIamPolicyResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
-
         ArgumentCaptor<DeletePolicyRequest> captor = ArgumentCaptor.forClass(DeletePolicyRequest.class);
-        verify(iamClient).deletePolicy(captor.capture());
+        verify(getAmazonIdentityManagement()).deletePolicy(captor.capture());
         DeletePolicyRequest actualRequest = captor.getValue();
         assertThat(actualRequest.getPolicyArn(), is(equalTo("policy1")));
-        verifyNoMoreInteractions(iamClient);
+        verifyNoMoreInteractions(getAmazonIdentityManagement());
     }
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateIamPolicyResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(iamClient);
+        verifyZeroInteractions(getAmazonIdentityManagement());
     }
 
     @Test

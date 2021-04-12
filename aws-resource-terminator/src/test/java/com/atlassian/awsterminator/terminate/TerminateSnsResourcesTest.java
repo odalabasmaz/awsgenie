@@ -34,8 +34,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateSnsResourcesTest {
+public class TerminateSnsResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.SNS;
@@ -60,22 +59,6 @@ public class TerminateSnsResourcesTest {
                     add("SNS Notification Failure-topic2");
                 }}));
     }};
-
-    @Mock
-    private AmazonCloudWatch cloudWatchClient;
-
-    @Mock
-    private AmazonSNS snsClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
-
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -86,15 +69,13 @@ public class TerminateSnsResourcesTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         InterceptorRegistry.getBeforeTerminateInterceptors().clear();
         InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateSnsResources = new TerminateSnsResources(credentialsProvider);
-        terminateSnsResources.setCloudWatchClient(cloudWatchClient);
-        terminateSnsResources.setSnsClient(snsClient);
-        terminateSnsResources.setFetchResourceFactory(fetchResourceFactory);
+        this.terminateSnsResources = new TerminateSnsResources(TerminatorHelper.getRegion1Account1Configuration());
+        this.terminateSnsResources.setFetchResourceFactory(getFetchResourceFactory());
 
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        FetchResources fetchResources = getFetchResources();
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
@@ -107,12 +88,13 @@ public class TerminateSnsResourcesTest {
     public void terminateResourcesWithApply() throws Exception {
         terminateSnsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
-        verify(snsClient).deleteTopic("topic1");
-        verifyNoMoreInteractions(snsClient);
+        AmazonSNS amazonSNS = getAmazonSNS();
+        verify(amazonSNS).deleteTopic("topic1");
+        verifyNoMoreInteractions(amazonSNS);
 
         ArgumentCaptor<DeleteAlarmsRequest> cwCaptor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
-        verify(cloudWatchClient).deleteAlarms(cwCaptor.capture());
-        verifyNoMoreInteractions(cloudWatchClient);
+        verify(getCloudWatchClient()).deleteAlarms(cwCaptor.capture());
+        verifyNoMoreInteractions(getCloudWatchClient());
         DeleteAlarmsRequest actualCWRequest = cwCaptor.getValue();
         assertThat(actualCWRequest.getAlarmNames().size(), is(equalTo(1)));
         assertThat(actualCWRequest.getAlarmNames(), hasItem("SNS Notification Failure-topic1"));
@@ -121,8 +103,8 @@ public class TerminateSnsResourcesTest {
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateSnsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(cloudWatchClient);
-        verifyZeroInteractions(snsClient);
+        verifyZeroInteractions(getCloudWatchClient());
+        verifyZeroInteractions(getAmazonSNS());
     }
 
     @Test

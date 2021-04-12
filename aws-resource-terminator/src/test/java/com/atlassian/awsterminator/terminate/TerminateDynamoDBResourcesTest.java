@@ -34,8 +34,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateDynamoDBResourcesTest {
+public class TerminateDynamoDBResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     public static final String TABLE_1 = "table1";
@@ -65,20 +64,6 @@ public class TerminateDynamoDBResourcesTest {
         //.setTotalUsage(0.0));
     }};
 
-    @Mock
-    private AmazonCloudWatch cloudWatchClient;
-
-    @Mock
-    private AmazonDynamoDB dynamoDBClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
 
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
@@ -90,36 +75,30 @@ public class TerminateDynamoDBResourcesTest {
 
     @Before
     public void setUp() throws Exception {
-        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
-        InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateDynamoDBResources = new TerminateDynamoDBResources(credentialsProvider);
-        terminateDynamoDBResources.setCloudWatchClient(cloudWatchClient);
-        terminateDynamoDBResources.setDynamoDBClient(dynamoDBClient);
-        terminateDynamoDBResources.setFetchResourceFactory(fetchResourceFactory);
-
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        super.setUp();
+        this.terminateDynamoDBResources = new TerminateDynamoDBResources(TerminatorHelper.getRegion1Account1Configuration());
+        terminateDynamoDBResources.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_1));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_1));
         doReturn(1.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_2));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_2));
         doReturn(0.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_3));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_3));
     }
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
         terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
-        verify(dynamoDBClient).deleteTable("table1");
-        verify(dynamoDBClient).deleteTable("table3");
-        verifyNoMoreInteractions(dynamoDBClient);
+        verify(getAmazonDynamoDB()).deleteTable("table1");
+        verify(getAmazonDynamoDB()).deleteTable("table3");
+        verifyNoMoreInteractions(getAmazonDynamoDB());
 
         ArgumentCaptor<DeleteAlarmsRequest> cwCaptor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
-        verify(cloudWatchClient).deleteAlarms(cwCaptor.capture());
-        verifyNoMoreInteractions(cloudWatchClient);
+        verify(getCloudWatchClient()).deleteAlarms(cwCaptor.capture());
+        verifyNoMoreInteractions(getCloudWatchClient());
         DeleteAlarmsRequest actualCWRequest = cwCaptor.getValue();
         assertThat(actualCWRequest.getAlarmNames().size(), is(equalTo(2)));
         assertThat(actualCWRequest.getAlarmNames(), hasItem("table1 Read"));
@@ -129,8 +108,8 @@ public class TerminateDynamoDBResourcesTest {
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(cloudWatchClient);
-        verifyZeroInteractions(dynamoDBClient);
+        verifyZeroInteractions(getCloudWatchClient());
+        verifyZeroInteractions(getAmazonDynamoDB());
     }
 
     @Test

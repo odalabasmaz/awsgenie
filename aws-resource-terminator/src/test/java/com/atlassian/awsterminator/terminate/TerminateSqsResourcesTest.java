@@ -3,6 +3,7 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
+import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.sns.AmazonSNS;
@@ -37,8 +38,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateSqsResourcesTest {
+public class TerminateSqsResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.SQS;
@@ -69,27 +69,6 @@ public class TerminateSqsResourcesTest {
     }};
 
     @Mock
-    private AmazonCloudWatch cloudWatchClient;
-
-    @Mock
-    private AmazonSNS snsClient;
-
-    @Mock
-    private AWSLambda lambdaClient;
-
-    @Mock
-    private AmazonSQS sqsClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
-
-    @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
     @Mock
@@ -99,25 +78,22 @@ public class TerminateSqsResourcesTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         InterceptorRegistry.getBeforeTerminateInterceptors().clear();
         InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateSqsResources = new TerminateSqsResources(credentialsProvider);
-        terminateSqsResources.setCloudWatchClient(cloudWatchClient);
-        terminateSqsResources.setSnsClient(snsClient);
-        terminateSqsResources.setLambdaClient(lambdaClient);
-        terminateSqsResources.setSqsClient(sqsClient);
-        terminateSqsResources.setFetchResourceFactory(fetchResourceFactory);
-
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        this.terminateSqsResources = new TerminateSqsResources(TerminatorHelper.getRegion1Account1Configuration());
+        terminateSqsResources.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
     }
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
         terminateSqsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
-
+        AmazonSNS snsClient = getAmazonSNS();
+        AWSLambda lambdaClient = getAmazonLambda();
+        AmazonSQS sqsClient = getAmazonSQS();
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient();
         verify(lambdaClient).deleteEventSourceMapping(new DeleteEventSourceMappingRequest().withUUID("lambda1"));
         verifyNoMoreInteractions(lambdaClient);
         verify(snsClient).unsubscribe("sns1");
@@ -138,6 +114,10 @@ public class TerminateSqsResourcesTest {
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateSqsResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
+        AmazonSNS snsClient = getAmazonSNS();
+        AWSLambda lambdaClient = getAmazonLambda();
+        AmazonSQS sqsClient = getAmazonSQS();
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient();
         verifyZeroInteractions(cloudWatchClient);
         verifyZeroInteractions(snsClient);
         verifyZeroInteractions(sqsClient);

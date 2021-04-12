@@ -7,8 +7,11 @@ import com.amazonaws.services.identitymanagement.model.*;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
+import credentials.AwsClientConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,21 +30,19 @@ import java.util.stream.Collectors;
  * Details: Required permissions: iam:ListRoles, iam:DeleteRole
  * TODO: add more...
  */
-public class TerminateIamRoleResources implements TerminateResources<IAMRoleResource> {
+public class TerminateIamRoleResources extends TerminateResourcesWithProvider implements TerminateResources<IAMRoleResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateIamRoleResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private AmazonIdentityManagement iamClient;
     private FetchResourceFactory<IAMRoleResource> fetchResourceFactory;
 
-    public TerminateIamRoleResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
+    public TerminateIamRoleResources(AwsClientConfiguration configuration) {
+        super(configuration);
     }
 
     @Override
     public void terminateResource(String region,
                                   Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonIdentityManagement iamClient = getIAMClient(region);
+        AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
         // Resources to be removed
         LinkedHashSet<String> rolesToDelete = new LinkedHashSet<>();
@@ -54,7 +55,7 @@ public class TerminateIamRoleResources implements TerminateResources<IAMRoleReso
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7)); //TODO: make this configurable...
 
-        FetchResources<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_ROLE, credentialsProvider);
+        FetchResources<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_ROLE, new FetcherConfiguration(getConfiguration()));
         List<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
@@ -108,22 +109,6 @@ public class TerminateIamRoleResources implements TerminateResources<IAMRoleReso
                 .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
-    }
-
-    void setIAMClient(AmazonIdentityManagement iamClient) {
-        this.iamClient = iamClient;
-    }
-
-    private AmazonIdentityManagement getIAMClient(String region) {
-        if (this.iamClient != null) {
-            return this.iamClient;
-        } else {
-            return AmazonIdentityManagementClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
     }
 
     void setFetchResourceFactory(FetchResourceFactory<IAMRoleResource> fetchResourceFactory) {

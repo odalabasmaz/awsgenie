@@ -3,20 +3,25 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
-import com.atlassian.awstool.terminate.AWSResource;
-import com.atlassian.awstool.terminate.FetchResourceFactory;
-import com.atlassian.awstool.terminate.FetchResources;
-import com.atlassian.awstool.terminate.Service;
+import com.atlassian.awstool.terminate.*;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
+import credentials.AwsClientProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+import sun.jvm.hotspot.gc_interface.GCWhen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +37,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateCloudwatchResourcesTest {
+public class TerminateCloudwatchResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.CLOUDWATCH;
@@ -50,20 +54,7 @@ public class TerminateCloudwatchResourcesTest {
     }};
 
     @Mock
-    private AmazonCloudWatch cloudWatchClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
-
-    @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
-
     @Mock
     private AfterTerminateInterceptor afterTerminateInterceptor;
 
@@ -71,16 +62,11 @@ public class TerminateCloudwatchResourcesTest {
 
     @Before
     public void setUp() throws Exception {
-        InterceptorRegistry.getBeforeTerminateInterceptors().clear();
-        InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateCloudwatchResources = new TerminateCloudwatchResources(credentialsProvider);
-        terminateCloudwatchResources.setCloudWatchClient(cloudWatchClient);
-        terminateCloudwatchResources.setFetchResourceFactory(fetchResourceFactory);
-
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        super.setUp();
+        this.terminateCloudwatchResources = new TerminateCloudwatchResources(TerminatorHelper.getRegion1Account1Configuration());
+        terminateCloudwatchResources.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(fetchResources).fetchResources(TEST_REGION, TEST_RESOURCES, null);
+                .when(getFetchResources()).fetchResources(TEST_REGION, TEST_RESOURCES, null);
     }
 
     @Test
@@ -88,8 +74,8 @@ public class TerminateCloudwatchResourcesTest {
         terminateCloudwatchResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
         ArgumentCaptor<DeleteAlarmsRequest> captor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
-        verify(cloudWatchClient).deleteAlarms(captor.capture());
-        verifyNoMoreInteractions(cloudWatchClient);
+        verify(getCloudWatchClient()).deleteAlarms(captor.capture());
+        verifyNoMoreInteractions(getCloudWatchClient());
         DeleteAlarmsRequest actualRequest = captor.getValue();
         assertThat(actualRequest.getAlarmNames(), hasItem("Alarm res1"));
         assertThat(actualRequest.getAlarmNames(), hasItem("Alarm res2"));
@@ -99,7 +85,7 @@ public class TerminateCloudwatchResourcesTest {
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateCloudwatchResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(cloudWatchClient);
+        verifyZeroInteractions(getCloudWatchClient());
     }
 
     @Test

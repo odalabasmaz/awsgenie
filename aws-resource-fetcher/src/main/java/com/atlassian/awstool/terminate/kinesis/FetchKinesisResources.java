@@ -1,19 +1,17 @@
 package com.atlassian.awstool.terminate.kinesis;
 
 import com.amazonaws.arn.Arn;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.*;
-import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.amazonaws.services.kinesis.model.ListStreamsRequest;
 import com.amazonaws.services.kinesis.model.ListStreamsResult;
 import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsResult;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,23 +24,16 @@ import java.util.function.Consumer;
  * @version 7.04.2021
  */
 
-public class FetchKinesisResources implements FetchResources<KinesisResource> {
+public class FetchKinesisResources extends FetchResourcesWithProvider implements FetchResources<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchKinesisResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private final Map<String, AmazonKinesis> kinesisClientMap = new HashMap<>();
-
-    public FetchKinesisResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
+    public FetchKinesisResources(FetcherConfiguration configuration) {
+        super(configuration);
     }
 
     @Override
     public Object getUsage(String region, String resource) {
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         Date endDate = new Date();
         Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
@@ -105,17 +96,8 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
 
     @Override
     public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AWSLambda lambdaClient = AWSLambdaClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+        AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
 
         Map<String, List<String>> eventSourceMappings = new LinkedHashMap<>();
         String marker;
@@ -165,11 +147,11 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) throws Exception {
+    public void listResources(String region, Consumer<List<String>> consumer) {
         List<String> kinesisResourceNameList = new ArrayList<>();
 
-        consume((String nextMarker) -> {
-            ListStreamsResult listStreamsResult = getKinesisClient(region).listStreams(new ListStreamsRequest().withExclusiveStartStreamName(nextMarker));
+        consume((nextMarker) -> {
+            ListStreamsResult listStreamsResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonKinesis().listStreams(new ListStreamsRequest().withExclusiveStartStreamName(nextMarker));
             kinesisResourceNameList.addAll(listStreamsResult.getStreamNames());
 
             consumer.accept(kinesisResourceNameList);
@@ -184,17 +166,5 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
 
     private String getResourceFromArn(String arn) {
         return Arn.fromString(arn).getResource().getResource();
-    }
-
-    private AmazonKinesis getKinesisClient(String region) {
-        if (kinesisClientMap.get(region) == null) {
-            kinesisClientMap.put(region, AmazonKinesisClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build());
-        }
-
-        return kinesisClientMap.get(region);
     }
 }

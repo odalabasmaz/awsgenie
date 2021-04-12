@@ -18,7 +18,8 @@
         <jackson-databind.version>2.9.10.8</jackson-databind.version>
         <jackson.version>2.11.4</jackson.version>
         <junit.version>4.12</junit.version>
-        <mockito-core.version>1.10.19</mockito-core.version>
+        <mockito-core.version>2.23.0</mockito-core.version>
+        <powermock.version>2.0.2</powermock.version>
     </properties>
 
     <modules>
@@ -127,6 +128,18 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito-core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-module-junit4</artifactId>
+                <version>${powermock.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.powermock</groupId>
+                <artifactId>powermock-api-mockito2</artifactId>
+                <version>${powermock.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
