@@ -1,20 +1,25 @@
 package com.atlassian.comparator;
 
-public class ResourceProducer {
-    ResourceQueue queueA;
+public class ResourceProducer extends BaseJob {
+    ResourceQueue queue;
     //ResourceQueue
     //run method  -> fetchResource -> list -> write to Queue
     //isDone
 
+    public ResourceProducer(ResourceQueue queue) {
+        this.queue = queue;
+    }
 
-    public void run(){
+    public void run() {
         //fetcher -> list method -> consumer.
-        //
     }
-    public ResourceQueue getValue() {
-        return queueA;
+
+    public ResourceQueue getQueue() {
+        return queue;
     }
-    public boolean isRunning(){
+
+    @Override
+    public boolean isRunning() {
         return false;
     }
 }

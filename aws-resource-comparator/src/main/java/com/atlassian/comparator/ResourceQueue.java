@@ -1,7 +1,15 @@
 package com.atlassian.comparator;
 
-public class ResourceQueue {
-    //ArrayDeque
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-    //get, put, poll -> syhncronized
+public class ResourceQueue {
+    ConcurrentLinkedQueue<String> resourceQueue = new ConcurrentLinkedQueue<>();
+
+    public String pop() {
+        return resourceQueue.poll();
+    }
+
+    public void put(String resource) {
+        resourceQueue.add(resource);
+    }
 }
