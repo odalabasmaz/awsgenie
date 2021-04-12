@@ -40,7 +40,6 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
         super(configuration);
     }
 
-
     @Override
     public List<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
