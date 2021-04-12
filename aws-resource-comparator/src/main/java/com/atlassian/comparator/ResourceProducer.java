@@ -1,20 +1,24 @@
 package com.atlassian.comparator;
 
-public class ResourceProducer {
-    ResourceQueue queueA;
-    //ResourceQueue
-    //run method  -> fetchResource -> list -> write to Queue
-    //isDone
+import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.FetchResources;
+
+public class ResourceProducer<K extends AWSResource> extends BaseJob<K> {
+    ResourceQueue<String> queueA;
+
+    public ResourceProducer(FetchResources<K> fetchResources, ResourceQueue<String> queueA) {
+        super(fetchResources);
+        this.queueA = queueA;
+    }
 
 
-    public void run(){
-        //fetcher -> list method -> consumer.
-        //
+    @Override
+    public void _run(FetchResources<K> fetchResources) throws Exception {
+        fetchResources.listResources(resources -> queueA.addAll(resources));
     }
-    public ResourceQueue getValue() {
-        return queueA;
+
+    public ResourceQueue<String> getValue() {
+        return new ResourceQueue<>(queueA.getAll());
     }
-    public boolean isRunning(){
-        return false;
-    }
+
 }

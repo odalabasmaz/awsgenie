@@ -8,7 +8,7 @@ public class ResourceComparator {
 
     // write baseJob and extend there
     public void run() {
-        isRunning = true;
+        /*isRunning = true;
         while (resourceProducerA.isRunning() && resourceProducerB.isRunning()) {
             ResourceQueue valueA = resourceProducerA.getValue();
             ResourceQueue valueB = resourceProducerB.getValue();
@@ -20,7 +20,7 @@ public class ResourceComparator {
         //compare ->
         resourceAnalyzer.submit();
         resourceAnalyzer.Diff();
-        isRunning = false;
+        isRunning = false;*/
     }
     // ResourceQueue
     //run method

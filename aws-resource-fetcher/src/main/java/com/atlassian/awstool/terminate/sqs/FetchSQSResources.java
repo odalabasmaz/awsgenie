@@ -37,7 +37,7 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
 
 
     @Override
-    public List<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<SQSResource> fetchResources(List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS();
 
 
@@ -125,7 +125,7 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
 
         List<String> sqsResourceNameList = new ArrayList<>();
 

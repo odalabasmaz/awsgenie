@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSNSResources extends FetchResourcesWithProvider implements FetchResources<SNSResource>{
+public class FetchSNSResources extends FetchResourcesWithProvider implements FetchResources<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchSNSResources.class);
 
     public FetchSNSResources(FetcherConfiguration configuration) {
@@ -78,9 +78,9 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
     }
 
     @Override
-    public List<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<SNSResource> fetchResources(List<String> resources, List<String> details) {
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
-        AmazonCloudWatch cloudWatchClient =AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         List<SNSResource> snsResourceList = new ArrayList<>();
         List<Topic> topics = new LinkedList<>();
@@ -117,7 +117,7 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
                 } while (nextToken != null);
 
                 // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("SNS Notification Failure-" + topicName + "-" + region))
+                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("SNS Notification Failure-" + topicName + "-" + getConfiguration().getRegion()))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
@@ -138,7 +138,7 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
 
         List<String> snsResourceNameList = new ArrayList<>();
 

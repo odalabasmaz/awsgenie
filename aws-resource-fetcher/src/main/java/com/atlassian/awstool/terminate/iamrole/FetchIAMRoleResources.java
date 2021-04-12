@@ -37,7 +37,7 @@ public class FetchIAMRoleResources extends FetchResourcesWithProvider implements
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListRolesResult listRolesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM().listRoles(new ListRolesRequest().withMarker(nextMarker));
             List<String> roleList = listRolesResult.getRoles().stream().map(Role::getRoleName).collect(Collectors.toList());
@@ -47,7 +47,7 @@ public class FetchIAMRoleResources extends FetchResourcesWithProvider implements
     }
 
     @Override
-    public List<IAMRoleResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<IAMRoleResource> fetchResources(List<String> resources, List<String> details) {
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
         List<IAMRoleResource> iamRoleResourceList = new ArrayList<>();

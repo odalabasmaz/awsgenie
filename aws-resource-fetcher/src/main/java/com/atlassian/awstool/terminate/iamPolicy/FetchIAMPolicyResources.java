@@ -46,7 +46,7 @@ public class FetchIAMPolicyResources extends FetchResourcesWithProvider implemen
     }
 
     @Override
-    public List<IAMPolicyResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<IAMPolicyResource> fetchResources(List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
         String accountId = AWSSecurityTokenServiceClientBuilder.standard().build()
@@ -71,7 +71,7 @@ public class FetchIAMPolicyResources extends FetchResourcesWithProvider implemen
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources( Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListPoliciesResult listPoliciesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM().listPolicies(new ListPoliciesRequest().withMarker(nextMarker));
             List<String> policyList = listPoliciesResult.getPolicies().stream().map(Policy::getPolicyName).collect(Collectors.toList());

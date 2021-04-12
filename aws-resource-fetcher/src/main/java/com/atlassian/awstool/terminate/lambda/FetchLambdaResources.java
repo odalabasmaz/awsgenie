@@ -42,7 +42,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
 
 
     @Override
-    public List<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<LambdaResource> fetchResources(List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
         AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
@@ -97,7 +97,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
                 }
 
                 // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix(region + " " + lambdaName + " Lambda "))
+                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix(getConfiguration().getRegion() + " " + lambdaName + " Lambda "))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarmsToDelete::add);
                 // Add to delete list at last step if gathering the subscriptions fail
@@ -126,7 +126,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
 
         List<String> lambdaResourceNameList = new ArrayList<>();
 

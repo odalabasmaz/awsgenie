@@ -11,9 +11,9 @@ import java.util.function.Function;
 
 public interface FetchResources<R extends AWSResource> {
 
-    List<R> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
+    List<R> fetchResources(List<String> resources, List<String> details) throws Exception;
 
-    void listResources(String region, Consumer<List<String>> consumer) throws Exception;
+    void listResources(Consumer<List<String>> consumer) throws Exception;
 
     default Object getUsage(String region, String resource) {
         return null;

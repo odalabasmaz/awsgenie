@@ -93,7 +93,7 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListTablesResult listTablesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB().listTables(new ListTablesRequest().withExclusiveStartTableName(nextMarker));
             consumer.accept(listTablesResult.getTableNames());
@@ -102,7 +102,7 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
     }
 
     @Override
-    public List<DynamodbResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<DynamodbResource> fetchResources(List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
 
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();

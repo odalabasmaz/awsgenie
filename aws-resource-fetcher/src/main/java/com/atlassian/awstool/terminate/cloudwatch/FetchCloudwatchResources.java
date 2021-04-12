@@ -4,7 +4,6 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsResult;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
@@ -30,7 +29,7 @@ public class FetchCloudwatchResources extends FetchResourcesWithProvider impleme
 
 
     @Override
-    public List<CloudwatchResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<CloudwatchResource> fetchResources(List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         // Resources to be removed
@@ -57,7 +56,7 @@ public class FetchCloudwatchResources extends FetchResourcesWithProvider impleme
 
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
         consume((nextMarker) -> {
             DescribeAlarmsResult describeAlarmsResult = cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withNextToken(nextMarker));

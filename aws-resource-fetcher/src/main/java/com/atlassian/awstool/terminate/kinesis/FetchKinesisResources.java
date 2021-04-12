@@ -95,7 +95,7 @@ public class FetchKinesisResources extends FetchResourcesWithProvider implements
     }
 
     @Override
-    public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<KinesisResource> fetchResources(List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
         AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
 
@@ -147,7 +147,7 @@ public class FetchKinesisResources extends FetchResourcesWithProvider implements
     }
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
         List<String> kinesisResourceNameList = new ArrayList<>();
 
         consume((nextMarker) -> {
