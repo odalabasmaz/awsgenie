@@ -16,13 +16,13 @@ public class ResourceComparatorRun {
 
     public static void main(String[] args) throws Exception {
 
-
+/*
 
         ResourceProducer resourceProducerA = new ResourceProducer(new ResourceQueue());
         ResourceProducer resourceProducerB = new ResourceProducer(new ResourceQueue());
 
         ResourceComparator resourceComparator = new ResourceComparator(resourceProducerA,resourceProducerB);
-        ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer();
+        ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer();*/
 
     }
 

@@ -4,10 +4,10 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsResult;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
-import io.awsgenie.fetcher.ResourceFetcher;
-import io.awsgenie.fetcher.ResourceFetcherConfiguration;
-import io.awsgenie.fetcher.ResourceFetcherWithProvider;
-import io.awsgenie.fetcher.credentials.AWSClientProvider;
+import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
+import credentials.AwsClientProvider;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -29,8 +29,8 @@ public class CloudWatchResourceFetcher extends ResourceFetcherWithProvider imple
 
 
     @Override
-    public List<CloudWatchResource> fetchResources(String region, List<String> resources, List<String> details) {
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+    public List<CloudwatchResource> fetchResources(List<String> resources, List<String> details) {
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         // Resources to be removed
         LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
@@ -56,8 +56,8 @@ public class CloudWatchResourceFetcher extends ResourceFetcherWithProvider imple
 
 
     @Override
-    public void listResources(String region, Consumer<List<String>> consumer) {
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+    public void listResources(Consumer<List<String>> consumer) {
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
         consume((nextMarker) -> {
             DescribeAlarmsResult describeAlarmsResult = cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withNextToken(nextMarker));
             List<String> alarmList = describeAlarmsResult.getMetricAlarms().stream().map(MetricAlarm::getAlarmName).collect(Collectors.toList());
