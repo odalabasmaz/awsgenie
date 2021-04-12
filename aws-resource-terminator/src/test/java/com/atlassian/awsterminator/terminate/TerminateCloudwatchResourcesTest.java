@@ -1,27 +1,16 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
-import com.atlassian.awstool.terminate.*;
+import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
-import credentials.AwsClientProvider;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import sun.jvm.hotspot.gc_interface.GCWhen;
 
 import java.util.ArrayList;
 import java.util.List;
