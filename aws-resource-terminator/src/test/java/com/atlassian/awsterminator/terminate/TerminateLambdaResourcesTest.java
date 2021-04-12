@@ -52,24 +52,24 @@ public class TerminateLambdaResourcesTest {
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
         add(new LambdaResource()
                 .setResourceName("lambda1")
-                .setCloudwatchAlarmsToDelete(new LinkedHashSet<String>() {{
+                .setCloudwatchAlarms(new LinkedHashSet<String>() {{
                     add("lambda1 Lambda execution failed");
                 }})
-                .setCloudwatchRulesToDelete(new LinkedHashSet<String>() {{
+                .setCloudwatchRules(new LinkedHashSet<String>() {{
                     add("lambda1 CW rule");
                 }})
-                .setSnsTriggersToDelete(new LinkedHashSet<String>() {{
+                .setSnsTriggers(new LinkedHashSet<String>() {{
                     add("lambda1 SNS trigger");
                 }})
-                .setCloudwatchRuleTargetsToDelete(new LinkedHashSet<String>() {{
+                .setCloudwatchRuleTargets(new LinkedHashSet<String>() {{
                     add("lambda1 CW rule:target");
                 }})
-                .setEventSourceMappingsToDelete(new LinkedHashSet<String>() {{
+                .setEventSourceMappings(new LinkedHashSet<String>() {{
                     add("lambda1 event source mapping");
                 }}));
         add(new LambdaResource()
                 .setResourceName("lambda2")
-                .setSnsTriggersToDelete(new LinkedHashSet<String>() {{
+                .setSnsTriggers(new LinkedHashSet<String>() {{
                     add("lambda2 SNS trigger");
                 }}));
     }};

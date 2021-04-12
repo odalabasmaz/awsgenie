@@ -33,6 +33,18 @@ public class FetchIAMRoleResources implements FetchResources<IAMRoleResource> {
     }
 
     @Override
+    public Object getUsage(String region, String resource) {
+        AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        Role role = iamClient.getRole(new GetRoleRequest().withRoleName(resource)).getRole();
+        return role.getRoleLastUsed().getLastUsedDate();
+    }
+
+    @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListRolesResult listRolesResult = getIamClient(region).listRoles(new ListRolesRequest().withMarker(nextMarker));
@@ -55,8 +67,7 @@ public class FetchIAMRoleResources implements FetchResources<IAMRoleResource> {
         for (String roleName : resources) {
             try {
                 Role role = iamClient.getRole(new GetRoleRequest().withRoleName(roleName)).getRole();
-
-                iamRoleResourceList.add(new IAMRoleResource().setResourceName(roleName).setLastUsedDate(role.getRoleLastUsed().getLastUsedDate()));
+                iamRoleResourceList.add(new IAMRoleResource().setResourceName(role.getRoleName()));
             } catch (NoSuchEntityException ex) {
                 details.add("!!! IAM Role not exists: [" + roleName + "]");
                 LOGGER.warn("!!! IAM Role not exists: [" + roleName + "]");
@@ -64,8 +75,7 @@ public class FetchIAMRoleResources implements FetchResources<IAMRoleResource> {
         }
         return iamRoleResourceList;
     }
-
-
+    
     private AmazonIdentityManagement getIamClient(String region) {
         if (iamClientMap.get(region) == null) {
             iamClientMap.put(region, AmazonIdentityManagementClient

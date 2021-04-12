@@ -31,6 +31,25 @@ public class FetchIAMPolicyResources implements FetchResources<IAMPolicyResource
     }
 
     @Override
+    public Object getUsage(String region, String resourceArn) {
+        AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        String jobId = iamClient.generateServiceLastAccessedDetails(new GenerateServiceLastAccessedDetailsRequest().withArn(resourceArn)).getJobId();
+        List<ServiceLastAccessed> servicesLastAccessed = iamClient.getServiceLastAccessedDetails(new GetServiceLastAccessedDetailsRequest().withJobId(jobId)).getServicesLastAccessed();
+        Optional<ServiceLastAccessed> latestUsageByAnyService = servicesLastAccessed.stream().max(Comparator.comparing(ServiceLastAccessed::getLastAuthenticated));
+
+        if (latestUsageByAnyService.isPresent()
+                && latestUsageByAnyService.get().getLastAuthenticated() != null) {
+            return latestUsageByAnyService.get().getLastAuthenticated();
+        }
+        return null;
+    }
+
+    @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListPoliciesResult listPoliciesResult = getIamClient(region).listPolicies(new ListPoliciesRequest().withMarker(nextMarker));
@@ -59,16 +78,6 @@ public class FetchIAMPolicyResources implements FetchResources<IAMPolicyResource
                 Policy policy = iamClient.getPolicy(new GetPolicyRequest().withPolicyArn(policyArn)).getPolicy();
 
                 IAMPolicyResource iamPolicyResource = new IAMPolicyResource().setResourceName(policy.getArn());
-
-                String jobId = iamClient.generateServiceLastAccessedDetails(new GenerateServiceLastAccessedDetailsRequest().withArn(policyArn)).getJobId();
-                List<ServiceLastAccessed> servicesLastAccessed = iamClient.getServiceLastAccessedDetails(new GetServiceLastAccessedDetailsRequest().withJobId(jobId)).getServicesLastAccessed();
-                Optional<ServiceLastAccessed> latestUsageByAnyService = servicesLastAccessed.stream().max(Comparator.comparing(ServiceLastAccessed::getLastAuthenticated));
-
-                if (latestUsageByAnyService.isPresent()
-                        && latestUsageByAnyService.get().getLastAuthenticated() != null) {
-                    iamPolicyResource.setLastUsedDate(latestUsageByAnyService.get().getLastAuthenticated());
-                }
-
                 iamPolicyResourceList.add(iamPolicyResource);
             } catch (NoSuchEntityException ex) {
                 details.add("!!! IAM Policy not exists: [" + policyName + "]");

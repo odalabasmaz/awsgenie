@@ -7,7 +7,6 @@ import java.util.LinkedHashSet;
 
 public class IAMPolicyResource extends AWSResource {
     private String resourceName;
-    private Date lastUsedDate;
 
     @Override
     public String getResourceName() {
@@ -16,15 +15,6 @@ public class IAMPolicyResource extends AWSResource {
 
     public IAMPolicyResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
-        return this;
-    }
-
-    public Date getLastUsedDate() {
-        return lastUsedDate;
-    }
-
-    public IAMPolicyResource setLastUsedDate(Date lastUsedDate) {
-        this.lastUsedDate = lastUsedDate;
         return this;
     }
 }

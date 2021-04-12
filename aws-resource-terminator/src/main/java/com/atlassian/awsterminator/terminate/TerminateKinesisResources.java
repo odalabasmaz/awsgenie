@@ -50,11 +50,12 @@ public class TerminateKinesisResources implements TerminateResources<KinesisReso
         List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
-            if (kinesisResource.getTotalUsage() > 0) {
+            Double totalUsage = (Double) fetcher.getUsage(region, kinesisResource.getResourceName());
+            if (totalUsage > 0) {
                 details.add("Kinesis stream seems in use, not deleting: [" + kinesisResource.getResourceName() +
-                        "], totalUsage: [" + kinesisResource.getTotalUsage() + "]");
+                        "], totalUsage: [" + totalUsage + "]");
                 LOGGER.warn("Kinesis stream seems in use, not deleting: [" + kinesisResource.getResourceName() +
-                        "], totalUsage: [" + kinesisResource.getTotalUsage() + "]");
+                        "], totalUsage: [" + totalUsage + "]");
                 continue;
             }
 

@@ -37,6 +37,73 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
     }
 
     @Override
+    public Object getUsage(String region, String resource) {
+        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        Date endDate = new Date();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
+
+        // check RW usages for last week
+        GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
+                .withStartTime(startDate)
+                .withEndTime(endDate)
+                .withMaxDatapoints(100)
+                .withMetricDataQueries(
+                        new MetricDataQuery()
+                                .withId("m1")
+                                .withMetricStat(new MetricStat()
+                                        .withStat("Sum")
+                                        .withMetric(new Metric()
+                                                .withMetricName("GetRecords.Bytes")
+                                                .withDimensions(new Dimension()
+                                                        .withName("StreamName")
+                                                        .withValue(resource)
+                                                )
+                                                .withNamespace("AWS/Kinesis")
+                                        )
+                                        .withPeriod(period)
+                                ),
+                        new MetricDataQuery()
+                                .withId("m2")
+                                .withMetricStat(new MetricStat()
+                                        .withStat("Sum")
+                                        .withMetric(new Metric()
+                                                .withMetricName("IncomingBytes")
+                                                .withDimensions(new Dimension()
+                                                        .withName("StreamName")
+                                                        .withValue(resource)
+                                                )
+                                                .withNamespace("AWS/Kinesis")
+                                        )
+                                        .withPeriod(period)
+                                ),
+                        new MetricDataQuery()
+                                .withId("totalUsage")
+                                .withExpression("m1+m2")
+                )
+        );
+
+        Double totalUsage = 0d;
+        Optional<MetricDataResult> optionalMetricDataResult = result.getMetricDataResults()
+                .stream()
+                .filter(r -> r.getId().equals("totalUsage"))
+                .findFirst();
+
+        if (optionalMetricDataResult.isPresent() && optionalMetricDataResult.get().getValues().size() > 0) {
+            totalUsage = optionalMetricDataResult.get().getValues().get(0);
+        } else {
+            LOGGER.warn("totalUsage metric is not present for stream: " + resource);
+        }
+
+        return totalUsage;
+    }
+
+    @Override
     public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
@@ -49,10 +116,6 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
                 .withRegion(region)
                 .withCredentials(credentialsProvider)
                 .build();
-
-        Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
 
         Map<String, List<String>> eventSourceMappings = new LinkedHashMap<>();
         String marker;
@@ -78,71 +141,19 @@ public class FetchKinesisResources implements FetchResources<KinesisResource> {
             try {
                 LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
 
-                // check RW usages for last week
-                GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
-                        .withStartTime(startDate)
-                        .withEndTime(endDate)
-                        .withMaxDatapoints(100)
-                        .withMetricDataQueries(
-                                new MetricDataQuery()
-                                        .withId("m1")
-                                        .withMetricStat(new MetricStat()
-                                                .withStat("Sum")
-                                                .withMetric(new Metric()
-                                                        .withMetricName("GetRecords.Bytes")
-                                                        .withDimensions(new Dimension()
-                                                                .withName("StreamName")
-                                                                .withValue(stream)
-                                                        )
-                                                        .withNamespace("AWS/Kinesis")
-                                                )
-                                                .withPeriod(period)
-                                        ),
-                                new MetricDataQuery()
-                                        .withId("m2")
-                                        .withMetricStat(new MetricStat()
-                                                .withStat("Sum")
-                                                .withMetric(new Metric()
-                                                        .withMetricName("IncomingBytes")
-                                                        .withDimensions(new Dimension()
-                                                                .withName("StreamName")
-                                                                .withValue(stream)
-                                                        )
-                                                        .withNamespace("AWS/Kinesis")
-                                                )
-                                                .withPeriod(period)
-                                        ),
-                                new MetricDataQuery()
-                                        .withId("totalUsage")
-                                        .withExpression("m1+m2")
-                        )
-                );
-
-                Double totalUsage = 0d;
-                Optional<MetricDataResult> optionalMetricDataResult = result.getMetricDataResults()
-                        .stream()
-                        .filter(r -> r.getId().equals("totalUsage"))
-                        .findFirst();
-
-                if (optionalMetricDataResult.isPresent() && optionalMetricDataResult.get().getValues().size() > 0) {
-                    totalUsage = optionalMetricDataResult.get().getValues().get(0);
-                } else {
-                    LOGGER.warn("totalUsage metric is not present for stream: " + stream);
-                }
-
                 // Cloudwatch alarms
                 cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("Kinesis stream " + stream + " is"))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                KinesisResource kinesisResource = new KinesisResource().setResourceName(stream).setTotalUsage(totalUsage);
+                KinesisResource kinesisResource = new KinesisResource().setResourceName(stream);
                 kinesisResource.getCloudwatchAlarmList().addAll(cloudwatchAlarms);
                 kinesisResourceList.add(kinesisResource);
 
                 List<String> lambdas = eventSourceMappings.get(stream);
 
-                details.add(String.format("Resources info for: [%s], lambdas this stream triggers: [%s], total usage for last week: [%s], cw alarms: %s",
-                        stream, lambdas, totalUsage, cloudwatchAlarms));
+                details.add(String.format("Resources info for: [%s], lambdas this stream triggers: [%s], cw alarms: %s",
+                        stream, lambdas, cloudwatchAlarms));
 
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! Kinesis stream not exists: " + stream);

@@ -38,12 +38,15 @@ import static org.mockito.Mockito.*;
 public class TerminateDynamoDBResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    public static final String TABLE_1 = "table1";
+    public static final String TABLE_2 = "table2";
+    public static final String TABLE_3 = "table3";
     private final Service service = Service.DYNAMODB;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
-        add("table1");
-        add("table2");
-        add("table3");
+        add(TABLE_1);
+        add(TABLE_2);
+        add(TABLE_3);
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
@@ -52,14 +55,14 @@ public class TerminateDynamoDBResourcesTest {
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("table1 Read");
                     add("table1 Write");
-                }})
-                .setTotalUsage(0.0));
+                }}));
+        //.setTotalUsage(0.0));
         add(new DynamodbResource()
-                .setResourceName("table2")
-                .setTotalUsage(1.0));
+                .setResourceName("table2"));
+        //.setTotalUsage(1.0));
         add(new DynamodbResource()
-                .setResourceName("table3")
-                .setTotalUsage(0.0));
+                .setResourceName("table3"));
+        //.setTotalUsage(0.0));
     }};
 
     @Mock
@@ -98,6 +101,12 @@ public class TerminateDynamoDBResourcesTest {
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+        doReturn(0.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_1));
+        doReturn(1.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_2));
+        doReturn(0.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TABLE_3));
     }
 
     @Test

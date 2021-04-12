@@ -49,9 +49,10 @@ public class TerminateSnsResources implements TerminateResources<SNSResource> {
         List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
-            if (snsResource.getPublishCountInLastWeek() > 0) {
-                details.add("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + snsResource.getPublishCountInLastWeek() + "]");
-                LOGGER.warn("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + snsResource.getPublishCountInLastWeek() + "]");
+            Double publishCountInLastWeek = (Double) fetcher.getUsage(region, snsResource.getResourceName());
+            if (publishCountInLastWeek > 0) {
+                details.add("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + publishCountInLastWeek + "]");
+                LOGGER.warn("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + publishCountInLastWeek + "]");
                 continue;
             }
             topicsToDelete.add(snsResource.getResourceName());

@@ -59,9 +59,10 @@ public class TerminateIamRoleResources implements TerminateResources<IAMRoleReso
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
             String roleName = iamRoleResource.getResourceName();
-            if (iamRoleResource.getLastUsedDate() != null && iamRoleResource.getLastUsedDate().after(referenceDate)) {
-                details.add("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
-                LOGGER.warn("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
+            Date lastUsedDate = (Date) fetcher.getUsage(region, roleName);
+            if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
+                details.add("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                LOGGER.warn("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
                 continue;
             }
             details.add("IAM Role will be deleted: " + roleName);

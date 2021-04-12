@@ -6,11 +6,11 @@ import java.util.LinkedHashSet;
 
 public class LambdaResource extends AWSResource {
     private String resourceName;
-    private LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-    private LinkedHashSet<String> snsTriggersToDelete = new LinkedHashSet<>();
-    private LinkedHashSet<String> cloudwatchRulesToDelete = new LinkedHashSet<>();
-    private LinkedHashSet<String> cloudwatchRuleTargetsToDelete = new LinkedHashSet<>();
-    private LinkedHashSet<String> eventSourceMappingsToDelete = new LinkedHashSet<>();
+    private LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
+    private LinkedHashSet<String> snsTriggers = new LinkedHashSet<>();
+    private LinkedHashSet<String> cloudwatchRules = new LinkedHashSet<>();
+    private LinkedHashSet<String> cloudwatchRuleTargets = new LinkedHashSet<>();
+    private LinkedHashSet<String> eventSourceMappings = new LinkedHashSet<>();
 
     @Override
     public String getResourceName() {
@@ -22,48 +22,48 @@ public class LambdaResource extends AWSResource {
         return this;
     }
 
-    public LinkedHashSet<String> getCloudwatchAlarmsToDelete() {
-        return cloudwatchAlarmsToDelete;
+    public LinkedHashSet<String> getCloudwatchAlarms() {
+        return cloudwatchAlarms;
     }
 
-    public LambdaResource setCloudwatchAlarmsToDelete(LinkedHashSet<String> cloudwatchAlarmsToDelete) {
-        this.cloudwatchAlarmsToDelete = cloudwatchAlarmsToDelete;
+    public LambdaResource setCloudwatchAlarms(LinkedHashSet<String> cloudwatchAlarms) {
+        this.cloudwatchAlarms = cloudwatchAlarms;
         return this;
     }
 
-    public LinkedHashSet<String> getSnsTriggersToDelete() {
-        return snsTriggersToDelete;
+    public LinkedHashSet<String> getSnsTriggers() {
+        return snsTriggers;
     }
 
-    public LambdaResource setSnsTriggersToDelete(LinkedHashSet<String> snsTriggersToDelete) {
-        this.snsTriggersToDelete = snsTriggersToDelete;
+    public LambdaResource setSnsTriggers(LinkedHashSet<String> snsTriggers) {
+        this.snsTriggers = snsTriggers;
         return this;
     }
 
-    public LinkedHashSet<String> getCloudwatchRulesToDelete() {
-        return cloudwatchRulesToDelete;
+    public LinkedHashSet<String> getCloudwatchRules() {
+        return cloudwatchRules;
     }
 
-    public LambdaResource setCloudwatchRulesToDelete(LinkedHashSet<String> cloudwatchRulesToDelete) {
-        this.cloudwatchRulesToDelete = cloudwatchRulesToDelete;
+    public LambdaResource setCloudwatchRules(LinkedHashSet<String> cloudwatchRules) {
+        this.cloudwatchRules = cloudwatchRules;
         return this;
     }
 
-    public LinkedHashSet<String> getCloudwatchRuleTargetsToDelete() {
-        return cloudwatchRuleTargetsToDelete;
+    public LinkedHashSet<String> getCloudwatchRuleTargets() {
+        return cloudwatchRuleTargets;
     }
 
-    public LambdaResource setCloudwatchRuleTargetsToDelete(LinkedHashSet<String> cloudwatchRuleTargetsToDelete) {
-        this.cloudwatchRuleTargetsToDelete = cloudwatchRuleTargetsToDelete;
+    public LambdaResource setCloudwatchRuleTargets(LinkedHashSet<String> cloudwatchRuleTargets) {
+        this.cloudwatchRuleTargets = cloudwatchRuleTargets;
         return this;
     }
 
-    public LinkedHashSet<String> getEventSourceMappingsToDelete() {
-        return eventSourceMappingsToDelete;
+    public LinkedHashSet<String> getEventSourceMappings() {
+        return eventSourceMappings;
     }
 
-    public LambdaResource setEventSourceMappingsToDelete(LinkedHashSet<String> eventSourceMappingsToDelete) {
-        this.eventSourceMappingsToDelete = eventSourceMappingsToDelete;
+    public LambdaResource setEventSourceMappings(LinkedHashSet<String> eventSourceMappings) {
+        this.eventSourceMappings = eventSourceMappings;
         return this;
     }
 }
