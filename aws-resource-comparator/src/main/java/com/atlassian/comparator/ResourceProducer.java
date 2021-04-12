@@ -11,7 +11,6 @@ public class ResourceProducer<K extends AWSResource> extends BaseJob<K> {
         this.queueA = queueA;
     }
 
-
     @Override
     public void _run(FetchResources<K> fetchResources) throws Exception {
         fetchResources.listResources(resources -> queueA.addAll(resources));
@@ -20,5 +19,4 @@ public class ResourceProducer<K extends AWSResource> extends BaseJob<K> {
     public ResourceQueue<String> getValue() {
         return new ResourceQueue<>(queueA.getAll());
     }
-
 }

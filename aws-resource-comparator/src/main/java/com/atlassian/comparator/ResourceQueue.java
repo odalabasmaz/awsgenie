@@ -1,13 +1,16 @@
 package com.atlassian.comparator;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ResourceQueue<T> {
-    private ArrayDeque<T> arrayDeque = new ArrayDeque();
+    private final ConcurrentLinkedQueue<T> arrayDeque;
 
+    public ResourceQueue() {
+        this.arrayDeque = new ConcurrentLinkedQueue<>();
+    }
 
-    public ResourceQueue(ArrayDeque<T> arrayDeque) {
+    public ResourceQueue(ConcurrentLinkedQueue<T> arrayDeque) {
         this.arrayDeque = arrayDeque;
     }
 
@@ -23,7 +26,7 @@ public class ResourceQueue<T> {
         return arrayDeque.addAll(collection);
     }
 
-    public ArrayDeque<T> getAll() {
+    public ConcurrentLinkedQueue<T> getAll() {
         return arrayDeque.clone();
     }
 

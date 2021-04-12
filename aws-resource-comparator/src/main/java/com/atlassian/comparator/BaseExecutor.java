@@ -6,17 +6,17 @@ import java.util.concurrent.*;
 
 public class BaseExecutor {
 
-    private List<Future> tasks = new ArrayList<>();
-    private ThreadPoolExecutor executors;
+    private final List<Future> tasks = new ArrayList<>();
+    private final ThreadPoolExecutor executors;
 
     public BaseExecutor(int numberOfThreads, int maxQueuesize) {
         BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(maxQueuesize);
         executors = new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, workQueue);
     }
 
-    public void runJob(Runnable runnable) {
+    public void runJob(BaseJob job) {
         Future future = executors.submit(() -> {
-            runnable.run();
+            job.run();
             return null;
         });
         tasks.add(future);
