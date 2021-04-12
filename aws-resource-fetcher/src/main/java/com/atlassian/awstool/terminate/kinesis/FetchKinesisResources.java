@@ -13,7 +13,6 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsResult;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +26,7 @@ import java.util.function.Consumer;
  * @version 7.04.2021
  */
 
-public class FetchKinesisResources implements FetchResources {
+public class FetchKinesisResources implements FetchResources<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchKinesisResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -38,7 +37,7 @@ public class FetchKinesisResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
                 .builder()
                 .withRegion(region)

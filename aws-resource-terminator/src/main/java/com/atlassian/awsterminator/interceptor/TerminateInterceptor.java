@@ -1,6 +1,7 @@
 package com.atlassian.awsterminator.interceptor;
 
 import com.atlassian.awstool.terminate.AWSResource;
+import com.atlassian.awstool.terminate.Service;
 
 import java.util.List;
 
@@ -10,5 +11,5 @@ import java.util.List;
  */
 
 public interface TerminateInterceptor {
-    void intercept(String service, List<? extends AWSResource> resources, String info, boolean apply);
+    void intercept(Service service, List<? extends AWSResource> resources, String info, boolean apply);
 }

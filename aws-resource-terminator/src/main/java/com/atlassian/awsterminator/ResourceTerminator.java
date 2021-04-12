@@ -9,6 +9,7 @@ import com.atlassian.awsterminator.configuration.FileConfiguration;
 import com.atlassian.awsterminator.configuration.ParameterConfiguration;
 import com.atlassian.awsterminator.terminate.TerminateResourceFactory;
 import com.atlassian.awsterminator.terminate.TerminateResources;
+import com.atlassian.awstool.terminate.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -28,6 +29,7 @@ public class ResourceTerminator {
     private static final Logger LOGGER = LogManager.getLogger(ResourceTerminator.class);
     private static final String STS_SESSION_NAME_PREFIX = "aws_resource_terminator_";
     private static final String DEFAULT_CONFIG_FILE_PATH = System.getProperty("user.home") + "/.awsterminator/config.json";
+    private static final String JIRA_SPACE_FOR_AUDIT = "hello";   // TODO: please fix me and make it configurable..
 
     public static void main(String[] args) throws Exception {
         ParameterConfiguration parameterConfiguration = new ParameterConfiguration();
@@ -45,12 +47,17 @@ public class ResourceTerminator {
         task.run(configuration, parameterConfiguration.isApply());
     }
 
+    public void run(Configuration configuration) throws Exception {
+        run(configuration, false);
+    }
+
     public void run(Configuration configuration, boolean apply) throws Exception {
         String region = configuration.getRegion();
-        String service = configuration.getService();
+        String serviceName = configuration.getService();
+        Service service = Service.fromValue(serviceName);
         List<String> resources = configuration.getResourcesAsList();
         String ticket = configuration.getTicket();
-        String ticketUrl = "https://hello.atlassian.net/browse/" + ticket;
+        String ticketUrl = "https://" + JIRA_SPACE_FOR_AUDIT + ".atlassian.net/browse/" + ticket;
         LOGGER.info("Terminating resources for service: {}, resources: {}, ticket: {}, dry-run: {}, region: {}",
                 service, resources, ticket, !apply, region);
 

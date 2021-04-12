@@ -21,11 +21,11 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchIAMRoleResources implements FetchResources {
+public class FetchIAMRoleResources implements FetchResources<IAMRoleResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchIAMRoleResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
-    private Map<String, AmazonIdentityManagement> iamClientMap;
+    private final Map<String, AmazonIdentityManagement> iamClientMap;
 
     public FetchIAMRoleResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
@@ -43,7 +43,7 @@ public class FetchIAMRoleResources implements FetchResources {
     }
 
     @Override
-    public List<? extends AWSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<IAMRoleResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonIdentityManagement iamClient = AmazonIdentityManagementClient
                 .builder()
                 .withRegion(region)

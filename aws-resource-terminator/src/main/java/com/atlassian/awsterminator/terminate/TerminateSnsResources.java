@@ -1,145 +1,52 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.arn.Arn;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.sns.SNSResource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Celal Emre CICEK
  * @version 6.04.2021
  */
 
-public class TerminateSnsResources implements TerminateResources {
+public class TerminateSnsResources implements TerminateResources<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateSnsResources.class);
 
     private final AWSCredentialsProvider credentialsProvider;
-    private final Map<String, AmazonS3> s3ClientsCache = new HashMap<>();
+    private AmazonCloudWatch cloudWatchClient;
+    private AmazonSNS snsClient;
+    private FetchResourceFactory<SNSResource> fetchResourceFactory;
 
     public TerminateSnsResources(AWSCredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     @Override
-    public void terminateResource(String region, String service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonSNS snsClient = AmazonSNSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        AmazonSNS snsClient = getSnsClient(region);
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
 
         HashSet<String> topicsToDelete = new LinkedHashSet<>();
         HashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
         List<String> details = new LinkedList<>();
 
-        /*Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
-
-        List<Topic> topics = new LinkedList<>();
-        String nextToken = null;
-
-        do {
-            ListTopicsResult listTopicsResult = snsClient.listTopics(new ListTopicsRequest().withNextToken(nextToken));
-            topics.addAll(listTopicsResult.getTopics()
-                    .stream()
-                    .filter(topic -> resources.contains(getResourceFromArn(topic.getTopicArn())))
-                    .collect(Collectors.toList()));
-            nextToken = listTopicsResult.getNextToken();
-        } while (nextToken != null);
-
-        for (Topic topic : topics) {
-            String topicName = getResourceFromArn(topic.getTopicArn());
-
-            try {
-                // check usages for last week
-                GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
-                        .withStartTime(startDate)
-                        .withEndTime(endDate)
-                        .withMaxDatapoints(100)
-                        .withMetricDataQueries(
-                                new MetricDataQuery()
-                                        .withId("m1")
-                                        .withMetricStat(new MetricStat()
-                                                .withStat("Sum")
-                                                .withMetric(new Metric()
-                                                        .withMetricName("NumberOfMessagesPublished")
-                                                        .withDimensions(new Dimension()
-                                                                .withName("TopicName")
-                                                                .withValue(topicName)
-                                                        )
-                                                        .withNamespace("AWS/SNS")
-                                                )
-                                                .withPeriod(period)
-                                        )
-                        )
-                );
-
-                double totalUsage = 0;
-
-                if (result.getMetricDataResults().get(0).getValues().size() > 0) {
-                    totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
-                } else {
-                    details.add("No metric found for topic: [" + topicName + "]");
-                    LOGGER.warn("No metric found for topic: [" + topicName + "]");
-                }
-
-                if (totalUsage > 0) {
-                    details.add("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + totalUsage + "]");
-                    LOGGER.warn("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + totalUsage + "]");
-                    continue;
-                }
-
-                List<String> subscriptions = new LinkedList<>();
-
-                do {
-                    ListSubscriptionsByTopicResult listSubscriptionsByTopicResult = snsClient
-                            .listSubscriptionsByTopic(new ListSubscriptionsByTopicRequest(topic.getTopicArn(), nextToken));
-                    List<String> subscriptionsPart = listSubscriptionsByTopicResult.getSubscriptions()
-                            .stream()
-                            .map(Subscription::getSubscriptionArn)
-                            .collect(Collectors.toList());
-                    subscriptions.addAll(subscriptionsPart);
-                    nextToken = listSubscriptionsByTopicResult.getNextToken();
-                } while (nextToken != null);
-
-                // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("SNS Notification Failure-" + topicName + "-" + region))
-                        .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
-                        .forEach(cloudwatchAlarmsToDelete::add);
-
-                // Add to delete list at last step if gathering the subscriptions fail
-                topicsToDelete.add(topic.getTopicArn());
-
-                details.add(String.format("Resources info for: [%s], subscriptions: [%s], total usage for last week: [%s], cw alarms: %s",
-                        topicName, subscriptions, totalUsage, cloudwatchAlarmsToDelete));
-            } catch (ResourceNotFoundException ex) {
-                details.add("!!! Topic not exists: " + topicName);
-                LOGGER.warn("Topic not exists: " + topicName);
-            }
-        }*/
-
-        FetchResources fetcher = new FetchResourceFactory().getFetcher("sns", credentialsProvider);
-        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<SNSResource> fetcher = getFetchResourceFactory().getFetcher(Service.SNS, credentialsProvider);
+        List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
             if (snsResource.getPublishCountInLastWeek() > 0) {
@@ -180,7 +87,47 @@ public class TerminateSnsResources implements TerminateResources {
         LOGGER.info("Succeed.");
     }
 
-    private String getResourceFromArn(String arn) {
-        return Arn.fromString(arn).getResource().getResource();
+    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
+        this.cloudWatchClient = cloudWatchClient;
+    }
+
+    private AmazonCloudWatch getCloudWatchClient(String region) {
+        if (this.cloudWatchClient != null) {
+            return this.cloudWatchClient;
+        } else {
+            return AmazonCloudWatchClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setSnsClient(AmazonSNS snsClient) {
+        this.snsClient = snsClient;
+    }
+
+    private AmazonSNS getSnsClient(String region) {
+        if (this.snsClient != null) {
+            return this.snsClient;
+        } else {
+            return AmazonSNSClient
+                    .builder()
+                    .withRegion(region)
+                    .withCredentials(credentialsProvider)
+                    .build();
+        }
+    }
+
+    void setFetchResourceFactory(FetchResourceFactory<SNSResource> fetchResourceFactory) {
+        this.fetchResourceFactory = fetchResourceFactory;
+    }
+
+    private FetchResourceFactory<SNSResource> getFetchResourceFactory() {
+        if (this.fetchResourceFactory != null) {
+            return this.fetchResourceFactory;
+        } else {
+            return new FetchResourceFactory<>();
+        }
     }
 }
