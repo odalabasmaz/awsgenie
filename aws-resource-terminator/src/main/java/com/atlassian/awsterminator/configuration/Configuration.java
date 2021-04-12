@@ -1,7 +1,9 @@
 package com.atlassian.awsterminator.configuration;
 
 import com.atlassian.awsterminator.exception.ConfigurationValidationException;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import credentials.AwsClientConfiguration;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -13,7 +15,7 @@ import java.util.stream.Collectors;
  * @version 6.04.2021
  */
 
-public interface Configuration {
+public interface Configuration extends AwsClientConfiguration {
     String getRegion();
 
     Configuration setRegion(String region);

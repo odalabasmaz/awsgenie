@@ -1,9 +1,5 @@
 package com.atlassian.awsterminator;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.configuration.FileConfiguration;
 import com.atlassian.awsterminator.configuration.ParameterConfiguration;
@@ -17,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -27,7 +22,6 @@ import java.util.*;
 
 public class ResourceTerminator {
     private static final Logger LOGGER = LogManager.getLogger(ResourceTerminator.class);
-    private static final String STS_SESSION_NAME_PREFIX = "aws_resource_terminator_";
     private static final String DEFAULT_CONFIG_FILE_PATH = System.getProperty("user.home") + "/.awsterminator/config.json";
     private static final String JIRA_SPACE_FOR_AUDIT = "hello";   // TODO: please fix me and make it configurable..
 
@@ -62,8 +56,7 @@ public class ResourceTerminator {
                 service, resources, ticket, !apply, region);
 
         TerminateResourceFactory factory = new TerminateResourceFactory();
-        AWSCredentialsProvider credentialsProvider = getCredentialsProvider(configuration);
-        TerminateResources terminator = factory.getTerminator(service, credentialsProvider);
+        TerminateResources terminator = factory.getTerminator(service, configuration);
         terminator.terminateResource(region, service, resources, ticketUrl, apply);
     }
 
@@ -96,31 +89,6 @@ public class ResourceTerminator {
     private FileConfiguration getConfigurationFromFile(String path) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(new File(path), FileConfiguration.class);
-    }
-
-    private AWSCredentialsProvider getCredentialsProvider(Configuration configuration) {
-        AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClient.builder()
-                .withRegion(configuration.getRegion())
-                .build();
-
-        if (StringUtils.isNotBlank(configuration.getAssumeRoleArn())) {
-            STSAssumeRoleSessionCredentialsProvider credentialsProvider = new STSAssumeRoleSessionCredentialsProvider
-                    .Builder(configuration.getAssumeRoleArn(), getSTSSessionName())
-                    .withStsClient(stsClient)
-                    .build();
-            LOGGER.info("Using assumed role: " + configuration.getAssumeRoleArn());
-            return credentialsProvider;
-        }
-
-        return null;
-    }
-
-    private static String getSTSSessionName() {
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("HH_mm", Locale.ENGLISH);
-        dateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String datePrefix = dateFormatter.format(new Date());
-
-        return STS_SESSION_NAME_PREFIX + datePrefix;
     }
 
     private static void mergeConfiguration(Configuration source, Configuration destination) {

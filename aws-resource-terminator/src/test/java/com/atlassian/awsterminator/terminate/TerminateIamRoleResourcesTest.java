@@ -2,7 +2,7 @@ package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
+import com.amazonaws.services.identitymanagement.model.*;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
@@ -34,8 +34,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateIamRoleResourcesTest {
+public class TerminateIamRoleResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     public static final String ROLE_1 = "role1";
@@ -54,19 +53,6 @@ public class TerminateIamRoleResourcesTest {
         add(new IAMRoleResource()
                 .setResourceName(ROLE_2));
     }};
-
-    @Mock
-    private AmazonIdentityManagement iamClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
-
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -77,37 +63,38 @@ public class TerminateIamRoleResourcesTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         InterceptorRegistry.getBeforeTerminateInterceptors().clear();
         InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateIamRoleResources = new TerminateIamRoleResources(credentialsProvider);
-        terminateIamRoleResources.setIAMClient(iamClient);
-        terminateIamRoleResources.setFetchResourceFactory(fetchResourceFactory);
+        this.terminateIamRoleResources = new TerminateIamRoleResources(TerminatorHelper.getRegion1Account1Configuration());
+        terminateIamRoleResources.setFetchResourceFactory(getFetchResourceFactory());
 
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate())
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(ROLE_1));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_1));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate())
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(ROLE_2));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_2));
     }
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
-        terminateIamRoleResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
+        doReturn(new ListRolePoliciesResult()).when(getAmazonIdentityManagement()).listRolePolicies(new ListRolePoliciesRequest().withRoleName(ROLE_1));
+        doReturn(new ListInstanceProfilesForRoleResult()).when(getAmazonIdentityManagement()).listInstanceProfilesForRole(new ListInstanceProfilesForRoleRequest().withRoleName(ROLE_1));
+        doReturn(new ListAttachedRolePoliciesResult()).when(getAmazonIdentityManagement()).listAttachedRolePolicies(new ListAttachedRolePoliciesRequest().withRoleName(ROLE_1));
 
+
+        terminateIamRoleResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
         ArgumentCaptor<DeleteRoleRequest> captor = ArgumentCaptor.forClass(DeleteRoleRequest.class);
-        verify(iamClient).deleteRole(captor.capture());
+        verify(getAmazonIdentityManagement()).deleteRole(captor.capture());
         DeleteRoleRequest actualRequest = captor.getValue();
         assertThat(actualRequest.getRoleName(), is(equalTo("role1")));
-        verifyNoMoreInteractions(iamClient);
     }
 
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateIamRoleResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(iamClient);
+        verifyZeroInteractions(getAmazonIdentityManagement());
     }
 
     @Test

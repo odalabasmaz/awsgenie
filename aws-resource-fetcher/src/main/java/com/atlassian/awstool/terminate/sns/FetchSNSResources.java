@@ -10,6 +10,9 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.*;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,24 +26,16 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSNSResources implements FetchResources<SNSResource> {
+public class FetchSNSResources extends FetchResourcesWithProvider implements FetchResources<SNSResource>{
     private static final Logger LOGGER = LogManager.getLogger(FetchSNSResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private final Map<String, AmazonSNS> snsClientMap;
-
-    public FetchSNSResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
-        this.snsClientMap = new HashMap<>();
+    public FetchSNSResources(FetcherConfiguration configuration) {
+        super(configuration);
     }
 
     @Override
     public Object getUsage(String region, String resource) {
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         Date endDate = new Date();
         Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
@@ -84,17 +79,8 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
 
     @Override
     public List<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
-        AmazonSNS snsClient = AmazonSNSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
-
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
+        AmazonCloudWatch cloudWatchClient =AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         List<SNSResource> snsResourceList = new ArrayList<>();
         List<Topic> topics = new LinkedList<>();
@@ -157,7 +143,7 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
         List<String> snsResourceNameList = new ArrayList<>();
 
         consume((String nextMarker) -> {
-            ListTopicsResult listTopicsResult = getSNSClient(region).listTopics(new ListTopicsRequest().withNextToken(nextMarker));
+            ListTopicsResult listTopicsResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS().listTopics(new ListTopicsRequest().withNextToken(nextMarker));
             for (Topic topic : listTopicsResult.getTopics()) {
                 snsResourceNameList.add(getResourceFromArn(topic.getTopicArn()));
             }
@@ -165,16 +151,5 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
             consumer.accept(snsResourceNameList);
             return listTopicsResult.getNextToken();
         });
-    }
-
-    private AmazonSNS getSNSClient(String region) {
-        if (snsClientMap.get(region) == null) {
-            snsClientMap.put(region, AmazonSNSClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build());
-        }
-        return snsClientMap.get(region);
     }
 }

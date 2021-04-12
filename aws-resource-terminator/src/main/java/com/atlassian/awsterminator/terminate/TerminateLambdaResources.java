@@ -14,11 +14,15 @@ import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.lambda.LambdaResource;
+import credentials.AwsClientConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,30 +35,25 @@ import java.util.List;
  * @version 10.03.2021
  */
 
-// TODO (Generic, not specific to this class): Enumerate given resources instead of fetcher results,
-// and log warning if a resource not found.
-
-public class TerminateLambdaResources implements TerminateResources<LambdaResource> {
+public class TerminateLambdaResources extends TerminateResourcesWithProvider implements TerminateResources<LambdaResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateLambdaResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private AmazonCloudWatch cloudWatchClient;
-    private AmazonSNS snsClient;
-    private AWSLambda lambdaClient;
-    private AmazonCloudWatchEvents cloudWatchEventsClient;
     private FetchResourceFactory<LambdaResource> fetchResourceFactory;
 
-    public TerminateLambdaResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
+    public TerminateLambdaResources(AwsClientConfiguration configuration) {
+        super(configuration);
     }
 
     @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
         // check triggers (sns, sqs, dynamodb stream)
-        AmazonSNS snsClient = getSnsClient(region);
-        AWSLambda lambdaClient = getLambdaClient(region);
-        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
-        AmazonCloudWatchEvents cloudWatchEventsClient = getCloudWatchEventsClient(region);
+        AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
+
+        AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
+
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+
+        AmazonCloudWatchEvents cloudWatchEventsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatchEvents();
 
         // Resources to be removed
         LinkedHashSet<String> lambdasToDelete = new LinkedHashSet<>();
@@ -66,8 +65,8 @@ public class TerminateLambdaResources implements TerminateResources<LambdaResour
 
         List<String> details = new LinkedList<>();
 
-        FetchResources<LambdaResource> fetchResources = getFetchResourceFactory().getFetcher(Service.LAMBDA, credentialsProvider);
-        List<LambdaResource> lambdaResourceList = fetchResources.fetchResources(region, resources, details);
+        FetchResources fetchResources = getFetchResourceFactory().getFetcher(Service.LAMBDA, new FetcherConfiguration(getConfiguration()));
+        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, resources, details);
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());
@@ -121,70 +120,6 @@ public class TerminateLambdaResources implements TerminateResources<LambdaResour
                 .forEach(interceptor -> interceptor.intercept(service, lambdaResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
-    }
-
-    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
-        this.cloudWatchClient = cloudWatchClient;
-    }
-
-    private AmazonCloudWatch getCloudWatchClient(String region) {
-        if (this.cloudWatchClient != null) {
-            return this.cloudWatchClient;
-        } else {
-            return AmazonCloudWatchClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
-    }
-
-    void setSnsClient(AmazonSNS snsClient) {
-        this.snsClient = snsClient;
-    }
-
-    private AmazonSNS getSnsClient(String region) {
-        if (this.snsClient != null) {
-            return this.snsClient;
-        } else {
-            return AmazonSNSClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
-    }
-
-    void setLambdaClient(AWSLambda lambdaClient) {
-        this.lambdaClient = lambdaClient;
-    }
-
-    private AWSLambda getLambdaClient(String region) {
-        if (this.lambdaClient != null) {
-            return this.lambdaClient;
-        } else {
-            return AWSLambdaClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
-    }
-
-    void setCloudWatchEventsClient(AmazonCloudWatchEvents cloudWatchEventsClient) {
-        this.cloudWatchEventsClient = cloudWatchEventsClient;
-    }
-
-    private AmazonCloudWatchEvents getCloudWatchEventsClient(String region) {
-        if (this.cloudWatchEventsClient != null) {
-            return this.cloudWatchEventsClient;
-        } else {
-            return AmazonCloudWatchEventsClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
     }
 
     void setFetchResourceFactory(FetchResourceFactory<LambdaResource> fetchResourceFactory) {

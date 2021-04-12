@@ -1,25 +1,21 @@
 package com.atlassian.awstool.terminate.sqs;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
 import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsRequest;
 import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.ListSubscriptionsRequest;
 import com.amazonaws.services.sns.model.ListSubscriptionsResult;
 import com.amazonaws.services.sns.model.Subscription;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.*;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
-import com.atlassian.awstool.terminate.sns.SNSResource;
+import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,42 +28,23 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSQSResources implements FetchResources<SQSResource> {
+public class FetchSQSResources extends FetchResourcesWithProvider implements FetchResources<SQSResource> {
     private static final Logger LOGGER = LogManager.getLogger(FetchSQSResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private final Map<String, AmazonSQS> sqsClientMap;
-
-    public FetchSQSResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
-        this.sqsClientMap = new HashMap<>();
+    public FetchSQSResources(FetcherConfiguration configuration) {
+        super(configuration);
     }
+
 
     @Override
     public List<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
-        AmazonSQS sqsClient = AmazonSQSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonSQS sqsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS();
 
-        AmazonSNS snsClient = AmazonSNSClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
 
-        AWSLambda lambdaClient = AWSLambdaClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
 
-        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
-                .builder()
-                .withRegion(region)
-                .withCredentials(credentialsProvider)
-                .build();
+        AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         // Resources to be removed
 
@@ -152,8 +129,8 @@ public class FetchSQSResources implements FetchResources<SQSResource> {
 
         List<String> sqsResourceNameList = new ArrayList<>();
 
-        consume((String nextMarker) -> {
-            ListQueuesResult listQueuesResult = getSQSClient(region).listQueues(new ListQueuesRequest().withNextToken(nextMarker));
+        consume((nextMarker) -> {
+            ListQueuesResult listQueuesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS().listQueues(new ListQueuesRequest().withNextToken(nextMarker));
             for (String queueUrl : listQueuesResult.getQueueUrls()) {
                 sqsResourceNameList.add(getQueueNameFromURL(queueUrl));
             }
@@ -165,16 +142,5 @@ public class FetchSQSResources implements FetchResources<SQSResource> {
 
     private String getQueueNameFromURL(String queueURL) {
         return queueURL.substring(queueURL.lastIndexOf("/") + 1);
-    }
-
-    private AmazonSQS getSQSClient(String region) {
-        if (sqsClientMap.get(region) == null) {
-            sqsClientMap.put(region, AmazonSQSClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build());
-        }
-        return sqsClientMap.get(region);
     }
 }

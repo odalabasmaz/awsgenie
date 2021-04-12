@@ -6,11 +6,15 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
+import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
+import credentials.AwsClientConfiguration;
+import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,22 +27,20 @@ import java.util.List;
  * @version 7.04.2021
  */
 
-public class TerminateKinesisResources implements TerminateResources<KinesisResource> {
+public class TerminateKinesisResources extends TerminateResourcesWithProvider implements TerminateResources<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateKinesisResources.class);
 
-    private final AWSCredentialsProvider credentialsProvider;
-    private AmazonCloudWatch cloudWatchClient;
-    private AmazonKinesis kinesisClient;
     private FetchResourceFactory<KinesisResource> fetchResourceFactory;
 
-    public TerminateKinesisResources(AWSCredentialsProvider credentialsProvider) {
-        this.credentialsProvider = credentialsProvider;
+    public TerminateKinesisResources(AwsClientConfiguration configuration) {
+        super(configuration);
     }
 
     @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        AmazonKinesis kinesisClient = getKinesisClient(region);
-        AmazonCloudWatch cloudWatchClient = getCloudWatchClient(region);
+        AmazonKinesis kinesisClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
+
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         // Resources to be removed
         LinkedHashSet<String> streamsToDelete = new LinkedHashSet<>();
@@ -46,8 +48,8 @@ public class TerminateKinesisResources implements TerminateResources<KinesisReso
 
         List<String> details = new LinkedList<>();
 
-        FetchResources<KinesisResource> fetcher = getFetchResourceFactory().getFetcher(Service.KINESIS, credentialsProvider);
-        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
+        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.KINESIS, new FetcherConfiguration(getConfiguration()));
+        List<KinesisResource> kinesisResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
             Double totalUsage = (Double) fetcher.getUsage(region, kinesisResource.getResourceName());
@@ -90,38 +92,6 @@ public class TerminateKinesisResources implements TerminateResources<KinesisReso
                 .forEach(interceptor -> interceptor.intercept(service, kinesisResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
-    }
-
-    void setCloudWatchClient(AmazonCloudWatch cloudWatchClient) {
-        this.cloudWatchClient = cloudWatchClient;
-    }
-
-    private AmazonCloudWatch getCloudWatchClient(String region) {
-        if (this.cloudWatchClient != null) {
-            return this.cloudWatchClient;
-        } else {
-            return AmazonCloudWatchClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
-    }
-
-    void setKinesisClient(AmazonKinesis kinesisClient) {
-        this.kinesisClient = kinesisClient;
-    }
-
-    private AmazonKinesis getKinesisClient(String region) {
-        if (this.kinesisClient != null) {
-            return this.kinesisClient;
-        } else {
-            return AmazonKinesisClient
-                    .builder()
-                    .withRegion(region)
-                    .withCredentials(credentialsProvider)
-                    .build();
-        }
     }
 
     void setFetchResourceFactory(FetchResourceFactory<KinesisResource> fetchResourceFactory) {

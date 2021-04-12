@@ -37,8 +37,7 @@ import static org.mockito.Mockito.*;
  * @version 9.04.2021
  */
 
-@RunWith(MockitoJUnitRunner.class)
-public class TerminateKinesisResourcesTest {
+public class TerminateKinesisResourcesTest extends TerminatorTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.KINESIS;
@@ -73,20 +72,6 @@ public class TerminateKinesisResourcesTest {
                 }}));
     }};
 
-    @Mock
-    private AmazonCloudWatch cloudWatchClient;
-
-    @Mock
-    private AmazonKinesis kinesisClient;
-
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
-    @Mock
-    private FetchResourceFactory fetchResourceFactory;
-
-    @Mock
-    private FetchResources fetchResources;
 
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
@@ -98,15 +83,12 @@ public class TerminateKinesisResourcesTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         InterceptorRegistry.getBeforeTerminateInterceptors().clear();
         InterceptorRegistry.getAfterTerminateInterceptors().clear();
-        this.terminateKinesisResources = new TerminateKinesisResources(credentialsProvider);
-        terminateKinesisResources.setCloudWatchClient(cloudWatchClient);
-        terminateKinesisResources.setKinesisClient(kinesisClient);
-        terminateKinesisResources.setFetchResourceFactory(fetchResourceFactory);
-
-        when(fetchResourceFactory.getFetcher(service, credentialsProvider))
-                .thenReturn(fetchResources);
+        this.terminateKinesisResources = new TerminateKinesisResources(TerminatorHelper.getRegion1Account1Configuration());
+        this.terminateKinesisResources.setFetchResourceFactory(getFetchResourceFactory());
+        FetchResources fetchResources = getFetchResources();
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
@@ -121,11 +103,13 @@ public class TerminateKinesisResourcesTest {
     public void terminateResourcesWithApply() throws Exception {
         terminateKinesisResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
+        AmazonKinesis kinesisClient = getAmazonKinesis();
         verify(kinesisClient).deleteStream("stream1");
         verify(kinesisClient).deleteStream("stream2");
         verifyNoMoreInteractions(kinesisClient);
 
         ArgumentCaptor<DeleteAlarmsRequest> captor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);
+        AmazonCloudWatch cloudWatchClient = getCloudWatchClient();
         verify(cloudWatchClient).deleteAlarms(captor.capture());
         verifyNoMoreInteractions(cloudWatchClient);
         DeleteAlarmsRequest actualRequest = captor.getValue();
@@ -139,8 +123,8 @@ public class TerminateKinesisResourcesTest {
     @Test
     public void terminateResourcesWithoutApply() throws Exception {
         terminateKinesisResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verifyZeroInteractions(kinesisClient);
-        verifyZeroInteractions(cloudWatchClient);
+        verifyZeroInteractions(getAmazonKinesis());
+        verifyZeroInteractions(getCloudWatchClient());
     }
 
     @Test
