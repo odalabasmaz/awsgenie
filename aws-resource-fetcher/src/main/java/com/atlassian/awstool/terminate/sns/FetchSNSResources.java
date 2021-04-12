@@ -6,11 +6,9 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
 import com.amazonaws.services.cloudwatch.model.*;
-import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.*;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,6 +35,54 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
     }
 
     @Override
+    public Object getUsage(String region, String resource) {
+        AmazonCloudWatch cloudWatchClient = AmazonCloudWatchClient
+                .builder()
+                .withRegion(region)
+                .withCredentials(credentialsProvider)
+                .build();
+
+        Date endDate = new Date();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
+
+        String topicName = getResourceFromArn(resource);
+
+        // check usages for last week
+        GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
+                .withStartTime(startDate)
+                .withEndTime(endDate)
+                .withMaxDatapoints(100)
+                .withMetricDataQueries(
+                        new MetricDataQuery()
+                                .withId("m1")
+                                .withMetricStat(new MetricStat()
+                                        .withStat("Sum")
+                                        .withMetric(new Metric()
+                                                .withMetricName("NumberOfMessagesPublished")
+                                                .withDimensions(new Dimension()
+                                                        .withName("TopicName")
+                                                        .withValue(topicName)
+                                                )
+                                                .withNamespace("AWS/SNS")
+                                        )
+                                        .withPeriod(period)
+                                )
+                )
+        );
+
+        double totalUsage = 0;
+
+        if (result.getMetricDataResults().get(0).getValues().size() > 0) {
+            totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
+        } else {
+            LOGGER.warn("No metric found for topic: [" + topicName + "]");
+        }
+
+        return totalUsage;
+    }
+
+    @Override
     public List<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSNS snsClient = AmazonSNSClient
                 .builder()
@@ -49,10 +95,6 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
                 .withRegion(region)
                 .withCredentials(credentialsProvider)
                 .build();
-
-        Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
 
         List<SNSResource> snsResourceList = new ArrayList<>();
         List<Topic> topics = new LinkedList<>();
@@ -73,37 +115,7 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
             String topicName = getResourceFromArn(topic.getTopicArn());
 
             try {
-                // check usages for last week
-                GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
-                        .withStartTime(startDate)
-                        .withEndTime(endDate)
-                        .withMaxDatapoints(100)
-                        .withMetricDataQueries(
-                                new MetricDataQuery()
-                                        .withId("m1")
-                                        .withMetricStat(new MetricStat()
-                                                .withStat("Sum")
-                                                .withMetric(new Metric()
-                                                        .withMetricName("NumberOfMessagesPublished")
-                                                        .withDimensions(new Dimension()
-                                                                .withName("TopicName")
-                                                                .withValue(topicName)
-                                                        )
-                                                        .withNamespace("AWS/SNS")
-                                                )
-                                                .withPeriod(period)
-                                        )
-                        )
-                );
 
-                double totalUsage = 0;
-
-                if (result.getMetricDataResults().get(0).getValues().size() > 0) {
-                    totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
-                } else {
-                    details.add("No metric found for topic: [" + topicName + "]");
-                    LOGGER.warn("No metric found for topic: [" + topicName + "]");
-                }
 
                 List<String> subscriptions = new LinkedList<>();
 
@@ -123,10 +135,10 @@ public class FetchSNSResources implements FetchResources<SNSResource> {
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                snsResourceList.add(new SNSResource().setResourceName(topic.getTopicArn()).setCloudwatchAlarms(cloudwatchAlarms).setPublishCountInLastWeek(totalUsage));
+                snsResourceList.add(new SNSResource().setResourceName(topic.getTopicArn()).setCloudwatchAlarms(cloudwatchAlarms));
 
-                details.add(String.format("Resources info for: [%s], subscriptions: [%s], total usage for last week: [%s], cw alarms: %s",
-                        topicName, subscriptions, totalUsage, cloudwatchAlarms));
+                details.add(String.format("Resources info for: [%s], subscriptions: [%s], cw alarms: %s",
+                        topicName, subscriptions, cloudwatchAlarms));
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! Topic not exists: " + topicName);
                 LOGGER.warn("Topic not exists: " + topicName);

@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 
 public class KinesisResource extends AWSResource {
     private String resourceName;
-    private double totalUsage = 0;
     private LinkedHashSet<String> cloudwatchAlarmList = new LinkedHashSet<>();
 
     @Override
@@ -21,15 +20,6 @@ public class KinesisResource extends AWSResource {
 
     public KinesisResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
-        return this;
-    }
-
-    public double getTotalUsage() {
-        return totalUsage;
-    }
-
-    public KinesisResource setTotalUsage(double totalUsage) {
-        this.totalUsage = totalUsage;
         return this;
     }
 

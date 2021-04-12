@@ -38,21 +38,21 @@ import static org.mockito.Mockito.*;
 public class TerminateIamPolicyResourcesTest {
     private static final String TEST_REGION = "us-west-2";
     private static final String TEST_TICKET = "TEST-TICKET";
+    public static final String POLICY_1 = "policy1";
+    public static final String POLICY_2 = "policy2";
     private final Service service = Service.IAM_POLICY;
 
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
-        add("policy1");
-        add("policy2");
+        add(POLICY_1);
+        add(POLICY_2);
         add("policy3");
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
         add(new IAMPolicyResource()
-                .setResourceName("policy1")
-                .setLastUsedDate(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate()));
+                .setResourceName(POLICY_1));
         add(new IAMPolicyResource()
-                .setResourceName("policy2")
-                .setLastUsedDate(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate()));
+                .setResourceName(POLICY_2));
     }};
 
     @Mock
@@ -87,6 +87,10 @@ public class TerminateIamPolicyResourcesTest {
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+        doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate())
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(POLICY_1));
+        doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate())
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(POLICY_2));
     }
 
     @Test

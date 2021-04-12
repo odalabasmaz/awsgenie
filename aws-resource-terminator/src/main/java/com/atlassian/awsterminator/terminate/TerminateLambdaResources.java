@@ -71,11 +71,11 @@ public class TerminateLambdaResources implements TerminateResources<LambdaResour
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());
-            cloudwatchAlarmsToDelete.addAll(lambdaResource.getCloudwatchAlarmsToDelete());
-            snsTriggersToDelete.addAll(lambdaResource.getSnsTriggersToDelete());
-            cloudwatchRulesToDelete.addAll(lambdaResource.getCloudwatchRulesToDelete());
-            cloudwatchRuleTargetsToDelete.addAll(lambdaResource.getCloudwatchRuleTargetsToDelete());
-            eventSourceMappingsToDelete.addAll(lambdaResource.getEventSourceMappingsToDelete());
+            cloudwatchAlarmsToDelete.addAll(lambdaResource.getCloudwatchAlarms());
+            snsTriggersToDelete.addAll(lambdaResource.getSnsTriggers());
+            cloudwatchRulesToDelete.addAll(lambdaResource.getCloudwatchRules());
+            cloudwatchRuleTargetsToDelete.addAll(lambdaResource.getCloudwatchRuleTargets());
+            eventSourceMappingsToDelete.addAll(lambdaResource.getEventSourceMappings());
         }
 
         StringBuilder info = new StringBuilder()

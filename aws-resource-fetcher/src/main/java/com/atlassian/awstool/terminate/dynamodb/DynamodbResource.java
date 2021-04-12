@@ -6,9 +6,7 @@ import java.util.LinkedHashSet;
 
 public class DynamodbResource extends AWSResource {
     private String resourceName;
-    private double totalUsage = 0;
     private LinkedHashSet<String> cloudwatchAlarmList = new LinkedHashSet<>();
-
 
 
     @Override
@@ -18,15 +16,6 @@ public class DynamodbResource extends AWSResource {
 
     public DynamodbResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
-        return this;
-    }
-
-    public double getTotalUsage() {
-        return totalUsage;
-    }
-
-    public DynamodbResource setTotalUsage(double totalUsage) {
-        this.totalUsage = totalUsage;
         return this;
     }
 

@@ -126,11 +126,11 @@ public class FetchLambdaResources implements FetchResources<LambdaResource> {
                         .forEach(cloudwatchAlarmsToDelete::add);
                 // Add to delete list at last step if gathering the subscriptions fail
                 LambdaResource lambdaResource = new LambdaResource()
-                        .setCloudwatchAlarmsToDelete(cloudwatchAlarmsToDelete)
-                        .setSnsTriggersToDelete(snsTriggersToDelete)
-                        .setCloudwatchRulesToDelete(cloudwatchRulesToDelete)
-                        .setCloudwatchRuleTargetsToDelete(cloudwatchRuleTargetsToDelete)
-                        .setEventSourceMappingsToDelete(eventSourceMappingsToDelete)
+                        .setCloudwatchAlarms(cloudwatchAlarmsToDelete)
+                        .setSnsTriggers(snsTriggersToDelete)
+                        .setCloudwatchRules(cloudwatchRulesToDelete)
+                        .setCloudwatchRuleTargets(cloudwatchRuleTargetsToDelete)
+                        .setEventSourceMappings(eventSourceMappingsToDelete)
                         .setResourceName(lambdaName);
 
                 lambdaResourceList.add(lambdaResource);

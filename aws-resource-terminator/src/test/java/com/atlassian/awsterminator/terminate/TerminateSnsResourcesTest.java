@@ -40,22 +40,22 @@ public class TerminateSnsResourcesTest {
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.SNS;
 
+    public static final String TOPIC_1 = "topic1";
+    public static final String TOPIC_2 = "topic2";
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
-        add("topic1");
-        add("topic2");
+        add(TOPIC_1);
+        add(TOPIC_2);
         add("topic3");
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
         add(new SNSResource()
-                .setResourceName("topic1")
-                .setPublishCountInLastWeek(0.0)
+                .setResourceName(TOPIC_1)
                 .setCloudwatchAlarms(new LinkedHashSet<String>() {{
                     add("SNS Notification Failure-topic1");
                 }}));
         add(new SNSResource()
-                .setResourceName("topic2")
-                .setPublishCountInLastWeek(1.0)
+                .setResourceName(TOPIC_2)
                 .setCloudwatchAlarms(new LinkedHashSet<String>() {{
                     add("SNS Notification Failure-topic2");
                 }}));
@@ -97,6 +97,10 @@ public class TerminateSnsResourcesTest {
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+        doReturn(0.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_1));
+        doReturn(1.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_2));
     }
 
     @Test

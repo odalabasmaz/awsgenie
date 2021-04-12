@@ -12,6 +12,7 @@ import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +23,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -41,30 +43,30 @@ public class TerminateKinesisResourcesTest {
     private static final String TEST_TICKET = "TEST-TICKET";
     private final Service service = Service.KINESIS;
 
+    public static final String STREAM_1 = "stream1";
+    public static final String STREAM_2 = "stream2";
+    public static final String STREAM_3 = "stream3";
     private static final List<String> TEST_RESOURCES = new ArrayList<String>() {{
-        add("stream1");
-        add("stream2");
-        add("stream3");
+        add(STREAM_1);
+        add(STREAM_2);
+        add(STREAM_3);
         add("stream4");
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
         add(new KinesisResource()
-                .setResourceName("stream1")
-                .setTotalUsage(0.0)
+                .setResourceName(STREAM_1)
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("Kinesis stream stream1 is Read throttled.");
                     add("Kinesis stream stream1 is Write throttled.");
                 }}));
         add(new KinesisResource()
-                .setResourceName("stream2")
-                .setTotalUsage(0.0)
+                .setResourceName(STREAM_2)
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("Kinesis stream stream2 is Read throttled.");
                 }}));
         add(new KinesisResource()
-                .setResourceName("stream3")
-                .setTotalUsage(1.0)
+                .setResourceName(STREAM_3)
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("Kinesis stream stream3 is Read throttled.");
                     add("Kinesis stream stream3 is Write throttled.");
@@ -107,6 +109,12 @@ public class TerminateKinesisResourcesTest {
                 .thenReturn(fetchResources);
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+        doReturn(0.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_1));
+        doReturn(0.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_2));
+        doReturn(1.0)
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_3));
     }
 
     @Test

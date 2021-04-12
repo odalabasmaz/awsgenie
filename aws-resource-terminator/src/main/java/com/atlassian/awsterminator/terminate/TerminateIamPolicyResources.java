@@ -54,9 +54,10 @@ public class TerminateIamPolicyResources implements TerminateResources<IAMPolicy
         List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
-            if (iamPolicyResource.getLastUsedDate() != null && iamPolicyResource.getLastUsedDate().after(referenceDate)) {
-                details.add("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(iamPolicyResource.getLastUsedDate()) + "]");
-                LOGGER.warn("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(iamPolicyResource.getLastUsedDate()) + "]");
+            Date lastUsedDate = (Date) fetcher.getUsage(region, iamPolicyResource.getResourceName());
+            if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
+                details.add("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                LOGGER.warn("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
                 continue;
             }
             details.add("IAM Policy will be deleted: " + iamPolicyResource.getResourceName());

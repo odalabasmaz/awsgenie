@@ -50,9 +50,10 @@ public class TerminateDynamoDBResources implements TerminateResources<DynamodbRe
         List<DynamodbResource> dynamodbResourceList = fetcher.fetchResources(region, resources, details);
 
         for (DynamodbResource dynamodbResource : dynamodbResourceList) {
-            if (dynamodbResource.getTotalUsage() > 0) {
-                details.add("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + dynamodbResource.getTotalUsage() + "]");
-                LOGGER.warn("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + dynamodbResource.getTotalUsage() + "]");
+            Double totalUsage = (Double) fetcher.getUsage(region, dynamodbResource.getResourceName());
+            if (totalUsage > 0) {
+                details.add("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + totalUsage + "]");
+                LOGGER.warn("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + totalUsage + "]");
                 continue;
             }
             tablesToDelete.add(dynamodbResource.getResourceName());
