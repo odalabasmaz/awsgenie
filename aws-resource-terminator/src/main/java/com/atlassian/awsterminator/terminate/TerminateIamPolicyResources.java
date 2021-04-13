@@ -2,6 +2,7 @@ package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -35,7 +36,18 @@ public class TerminateIamPolicyResources extends TerminateResourcesWithProvider 
     }
 
     @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
 
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
@@ -46,18 +58,24 @@ public class TerminateIamPolicyResources extends TerminateResourcesWithProvider 
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date endDate = new Date();
-        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
+        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage));
 
-        FetchResources<IAMPolicyResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_POLICY, new FetcherConfiguration(getConfiguration()));
+        FetchResources<IAMPolicyResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
         List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
             String policyName = iamPolicyResource.getResourceName();
-            Date lastUsedDate = (Date) fetcher.getUsage(region, policyName);
+            //TODO: fetching later, why not fetched at first...
+            Date lastUsedDate = (Date) fetcher.getUsage(region, policyName, lastUsage);
             if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
-                details.add("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
-                LOGGER.warn("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
-                continue;
+                if (force) {
+                    details.add("IAM policy seems in use, but still deleting with force: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    LOGGER.warn("IAM policy seems in use, but still deleting with force: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                } else {
+                    details.add("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    LOGGER.warn("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    continue;
+                }
             }
             policiesToDelete.add(policyName);
         }

@@ -1,11 +1,8 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
@@ -37,7 +34,18 @@ public class TerminateKinesisResources extends TerminateResourcesWithProvider im
     }
 
     @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonKinesis kinesisClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
 
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
@@ -48,20 +56,24 @@ public class TerminateKinesisResources extends TerminateResourcesWithProvider im
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.KINESIS, new FetcherConfiguration(getConfiguration()));
-        List<KinesisResource> kinesisResourceList = (List<KinesisResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<KinesisResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
-            Double totalUsage = (Double) fetcher.getUsage(region, kinesisResource.getResourceName());
+            String streamName = kinesisResource.getResourceName();
+            Double totalUsage = (Double) fetcher.getUsage(region, streamName, lastUsage);
             if (totalUsage > 0) {
-                details.add("Kinesis stream seems in use, not deleting: [" + kinesisResource.getResourceName() +
-                        "], totalUsage: [" + totalUsage + "]");
-                LOGGER.warn("Kinesis stream seems in use, not deleting: [" + kinesisResource.getResourceName() +
-                        "], totalUsage: [" + totalUsage + "]");
-                continue;
+                if (force) {
+                    details.add("Kinesis stream seems in use, but still deleting with force: [" + streamName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("Kinesis stream seems in use, but still deleting with force: [" + streamName + "], totalUsage: [" + totalUsage + "]");
+                } else {
+                    details.add("Kinesis stream seems in use, not deleting: [" + streamName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("Kinesis stream seems in use, not deleting: [" + streamName + "], totalUsage: [" + totalUsage + "]");
+                    continue;
+                }
             }
 
-            streamsToDelete.add(kinesisResource.getResourceName());
+            streamsToDelete.add(streamName);
             cloudwatchAlarmsToDelete.addAll(kinesisResource.getCloudwatchAlarmList());
         }
 

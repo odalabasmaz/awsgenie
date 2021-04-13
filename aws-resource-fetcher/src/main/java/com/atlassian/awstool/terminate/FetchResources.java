@@ -15,7 +15,7 @@ public interface FetchResources<R extends AWSResource> {
 
     void listResources(String region, Consumer<List<String>> consumer) throws Exception;
 
-    default Object getUsage(String region, String resource) {
+    default Object getUsage(String region, String resource, int lastDays) {
         return null;
     }
 

@@ -85,6 +85,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
                         } else {
                             // unexpected trigger received
                             //TODO: check if there is another option that we should consider: api-gw
+                            //TODO: what to do if there is a subscription?
                             LOGGER.warn("Unsupported trigger found: " + sourceArn);
                         }
                     });

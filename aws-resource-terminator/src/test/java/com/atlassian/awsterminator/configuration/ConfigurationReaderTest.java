@@ -21,7 +21,7 @@ public class ConfigurationReaderTest {
                 .setRegion("us-west-1")
                 .setResources("res1;res2;res3")
                 .setService("sqs")
-                .setTicket("ticket1")
+                .setDescription("ticket1")
                 .setAssumeRoleArn("role1");
         FileConfiguration fileConfiguration = new FileConfiguration()
                 .setRegion("us-west-2")
@@ -32,7 +32,7 @@ public class ConfigurationReaderTest {
         assertThat(parameterConfiguration.getRegion(), is(equalTo("us-west-2")));
         assertThat(parameterConfiguration.getService(), is(equalTo("sns")));
         assertThat(parameterConfiguration.getResources(), is(equalTo("res1;res2;res3")));
-        assertThat(parameterConfiguration.getTicket(), is(equalTo("ticket1")));
+        assertThat(parameterConfiguration.getDescription(), is(equalTo("ticket1")));
         assertThat(parameterConfiguration.getAssumeRoleArn(), is(equalTo("role1")));
     }
 }

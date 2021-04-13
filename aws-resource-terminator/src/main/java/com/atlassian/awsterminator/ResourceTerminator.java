@@ -19,7 +19,6 @@ import java.util.List;
 
 public class ResourceTerminator {
     private static final Logger LOGGER = LogManager.getLogger(ResourceTerminator.class);
-    private static final String JIRA_SPACE_FOR_AUDIT = "hello";   // TODO: please fix me and make it configurable..
 
     public static void main(String[] args) throws Exception {
         ParameterConfiguration parameterConfiguration = new ParameterConfiguration();
@@ -46,13 +45,12 @@ public class ResourceTerminator {
         String serviceName = configuration.getService();
         Service service = Service.fromValue(serviceName);
         List<String> resources = configuration.getResourcesAsList();
-        String ticket = configuration.getTicket();
-        String ticketUrl = "https://" + JIRA_SPACE_FOR_AUDIT + ".atlassian.net/browse/" + ticket;
-        LOGGER.info("Terminating resources for service: {}, resources: {}, ticket: {}, dry-run: {}, region: {}",
-                service, resources, ticket, !apply, region);
+        String description = configuration.getDescription();
+        LOGGER.info("Terminating resources for service: {}, resources: {}, description: {}, dry-run: {}, region: {}",
+                service, resources, description, !apply, region);
 
         TerminateResourceFactory factory = new TerminateResourceFactory();
         TerminateResources terminator = factory.getTerminator(service, configuration);
-        terminator.terminateResource(region, service, resources, ticketUrl, apply);
+        terminator.terminateResource(configuration, apply);
     }
 }

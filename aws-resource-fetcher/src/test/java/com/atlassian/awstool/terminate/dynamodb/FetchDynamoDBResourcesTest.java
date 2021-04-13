@@ -38,7 +38,7 @@ import static org.mockito.Mockito.*;
         AwsClientProvider.class
 })
 @PowerMockIgnore({
-        "javax.management.*"
+        "javax.management.*", "javax.script.*"
 })
 public class FetchDynamoDBResourcesTest {
     private static final String TEST_REGION = "us-west-2";
@@ -122,11 +122,11 @@ public class FetchDynamoDBResourcesTest {
     }
 
     @Test
-    public void getUsage() throws Exception {
+    public void getUsage() {
         when(cloudWatchClient.getMetricData(org.mockito.Mockito.any(GetMetricDataRequest.class)))
                 .thenReturn(new GetMetricDataResult()
                         .withMetricDataResults(new MetricDataResult().withId("totalUsage").withValues(4.13)));
-        Object usage = fetchDynamodbResources.getUsage(TEST_REGION, "table1");
+        Object usage = fetchDynamodbResources.getUsage(TEST_REGION, "table1", 7);
         assertThat(usage, is(equalTo(4.13)));
 
         ArgumentCaptor<GetMetricDataRequest> captor = ArgumentCaptor.forClass(GetMetricDataRequest.class);

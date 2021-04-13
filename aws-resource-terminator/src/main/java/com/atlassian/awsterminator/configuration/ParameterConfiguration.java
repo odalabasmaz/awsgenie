@@ -4,10 +4,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -24,20 +21,20 @@ public class ParameterConfiguration implements Configuration {
     @Parameter(names = {"--resources", "-res"}, description = "AWS resource names (semicolon-separated, whitespaces converted to +), ie. a;b+c;d")
     private String resources;
 
-    @Parameter(names = {"--ticket", "-t"}, description = "Related OGSD ticket id, ie. OGSD-1234")
-    private String ticket;
+    @Parameter(names = {"--description", "-d"}, description = "Description")
+    private String description;
 
     @Parameter(names = {"--assume-role-arn", "-ara"}, description = "IAM Role ARN to assume")
     private String assumeRoleArn;
 
-    @Parameter(names = {"--apply", "-a"}, description = "Apply the changes, dry-run by default")
+    @Parameter(names = {"--apply"}, description = "Apply the changes, dry-run by default")
     private boolean apply = false;
 
     @Parameter(names = {"--force"}, description = "Force applying the changes, even the usage confirmed")
     private boolean force = false;
 
-    @Parameter(names = {"--last-usage"}, description = "Check usage for the last X days")
-    private int lastUsage;
+    @Parameter(names = {"--last-usage"}, description = "Check usage for the last 7 days by default")
+    private int lastUsage = 7;
 
     @Parameter(names = {"--configuration-file", "-cf"}, description = "Use configuration file")
     private String configurationFile;
@@ -52,7 +49,7 @@ public class ParameterConfiguration implements Configuration {
                 .setRegion(this.region)
                 .setService(this.service)
                 .setResources(this.resources)
-                .setTicket(this.ticket)
+                .setDescription(this.description)
                 .setAssumeRoleArn(this.assumeRoleArn)
                 .setApply(this.apply)
                 .setForce(this.force)
@@ -94,13 +91,13 @@ public class ParameterConfiguration implements Configuration {
     }
 
     @Override
-    public String getTicket() {
-        return ticket;
+    public String getDescription() {
+        return description;
     }
 
     @Override
-    public ParameterConfiguration setTicket(String ticket) {
-        this.ticket = ticket;
+    public ParameterConfiguration setDescription(String ticket) {
+        this.description = ticket;
         return this;
     }
 
@@ -115,19 +112,12 @@ public class ParameterConfiguration implements Configuration {
         return this;
     }
 
-    public boolean isApply() {
-        return apply;
-    }
-
-    public ParameterConfiguration setApply(boolean apply) {
-        this.apply = apply;
-        return this;
-    }
-
+    @Override
     public boolean isForce() {
         return force;
     }
 
+    @Override
     public ParameterConfiguration setForce(boolean force) {
         this.force = force;
         return this;
@@ -139,6 +129,15 @@ public class ParameterConfiguration implements Configuration {
 
     public ParameterConfiguration setLastUsage(int lastUsage) {
         this.lastUsage = lastUsage;
+        return this;
+    }
+
+    public boolean isApply() {
+        return apply;
+    }
+
+    public ParameterConfiguration setApply(boolean apply) {
+        this.apply = apply;
         return this;
     }
 
@@ -161,7 +160,7 @@ public class ParameterConfiguration implements Configuration {
                 && Objects.equals(region, that.region)
                 && Objects.equals(service, that.service)
                 && Objects.equals(resources, that.resources)
-                && Objects.equals(ticket, that.ticket)
+                && Objects.equals(description, that.description)
                 && Objects.equals(assumeRoleArn, that.assumeRoleArn)
                 && Objects.equals(lastUsage, that.lastUsage)
                 && Objects.equals(configurationFile, that.configurationFile);
@@ -169,7 +168,7 @@ public class ParameterConfiguration implements Configuration {
 
     @Override
     public int hashCode() {
-        return Objects.hash(region, service, resources, ticket, assumeRoleArn, apply, configurationFile);
+        return Objects.hash(region, service, resources, description, assumeRoleArn, apply, configurationFile);
     }
 
     @Override
@@ -178,7 +177,7 @@ public class ParameterConfiguration implements Configuration {
                 .append("region", region)
                 .append("service", service)
                 .append("resources", resources)
-                .append("ticket", ticket)
+                .append("ticket", description)
                 .append("assumeRoleArn", assumeRoleArn)
                 .append("apply", apply)
                 .append("force", force)

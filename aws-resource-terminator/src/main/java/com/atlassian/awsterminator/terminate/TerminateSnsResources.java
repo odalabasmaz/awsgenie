@@ -1,13 +1,9 @@
 package com.atlassian.awsterminator.terminate;
 
 import com.amazonaws.arn.Arn;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
 import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
@@ -37,7 +33,18 @@ public class TerminateSnsResources extends TerminateResourcesWithProvider implem
     }
 
     @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
 
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
@@ -47,104 +54,23 @@ public class TerminateSnsResources extends TerminateResourcesWithProvider implem
 
         List<String> details = new LinkedList<>();
 
-        /*Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
-
-        List<Topic> topics = new LinkedList<>();
-        String nextToken = null;
-
-        do {
-            ListTopicsResult listTopicsResult = snsClient.listTopics(new ListTopicsRequest().withNextToken(nextToken));
-            topics.addAll(listTopicsResult.getTopics()
-                    .stream()
-                    .filter(topic -> resources.contains(getResourceFromArn(topic.getTopicArn())))
-                    .collect(Collectors.toList()));
-            nextToken = listTopicsResult.getNextToken();
-        } while (nextToken != null);
-
-        for (Topic topic : topics) {
-            String topicName = getResourceFromArn(topic.getTopicArn());
-
-            try {
-                // check usages for last week
-                GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
-                        .withStartTime(startDate)
-                        .withEndTime(endDate)
-                        .withMaxDatapoints(100)
-                        .withMetricDataQueries(
-                                new MetricDataQuery()
-                                        .withId("m1")
-                                        .withMetricStat(new MetricStat()
-                                                .withStat("Sum")
-                                                .withMetric(new Metric()
-                                                        .withMetricName("NumberOfMessagesPublished")
-                                                        .withDimensions(new Dimension()
-                                                                .withName("TopicName")
-                                                                .withValue(topicName)
-                                                        )
-                                                        .withNamespace("AWS/SNS")
-                                                )
-                                                .withPeriod(period)
-                                        )
-                        )
-                );
-
-                double totalUsage = 0;
-
-                if (result.getMetricDataResults().get(0).getValues().size() > 0) {
-                    totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
-                } else {
-                    details.add("No metric found for topic: [" + topicName + "]");
-                    LOGGER.warn("No metric found for topic: [" + topicName + "]");
-                }
-
-                if (totalUsage > 0) {
-                    details.add("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + totalUsage + "]");
-                    LOGGER.warn("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + totalUsage + "]");
-                    continue;
-                }
-
-                List<String> subscriptions = new LinkedList<>();
-
-                do {
-                    ListSubscriptionsByTopicResult listSubscriptionsByTopicResult = snsClient
-                            .listSubscriptionsByTopic(new ListSubscriptionsByTopicRequest(topic.getTopicArn(), nextToken));
-                    List<String> subscriptionsPart = listSubscriptionsByTopicResult.getSubscriptions()
-                            .stream()
-                            .map(Subscription::getSubscriptionArn)
-                            .collect(Collectors.toList());
-                    subscriptions.addAll(subscriptionsPart);
-                    nextToken = listSubscriptionsByTopicResult.getNextToken();
-                } while (nextToken != null);
-
-                // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("SNS Notification Failure-" + topicName + "-" + region))
-                        .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
-                        .forEach(cloudwatchAlarmsToDelete::add);
-
-                // Add to delete list at last step if gathering the subscriptions fail
-                topicsToDelete.add(topic.getTopicArn());
-
-                details.add(String.format("Resources info for: [%s], subscriptions: [%s], total usage for last week: [%s], cw alarms: %s",
-                        topicName, subscriptions, totalUsage, cloudwatchAlarmsToDelete));
-            } catch (ResourceNotFoundException ex) {
-                details.add("!!! Topic not exists: " + topicName);
-                LOGGER.warn("Topic not exists: " + topicName);
-            }
-        }*/
-
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.SNS, new FetcherConfiguration(getConfiguration()));
-        List<SNSResource> snsResourceList = (List<SNSResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<SNSResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
-            Double publishCountInLastWeek = (Double) fetcher.getUsage(region, snsResource.getResourceName());
+            String topicName = snsResource.getResourceName();
+            Double publishCountInLastWeek = (Double) fetcher.getUsage(region, topicName, lastUsage);
             if (publishCountInLastWeek > 0) {
-                details.add("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + publishCountInLastWeek + "]");
-                LOGGER.warn("Topic seems in use, not deleting: [" + snsResource.getResourceName() + "], totalUsage: [" + publishCountInLastWeek + "]");
-                continue;
+                if (force) {
+                    details.add("Topic seems in use, but still deleting with force: [" + topicName + "], totalUsage: [" + publishCountInLastWeek + "]");
+                    LOGGER.warn("Topic seems in use, but still deleting with force: [" + topicName + "], totalUsage: [" + publishCountInLastWeek + "]");
+                } else {
+                    details.add("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + publishCountInLastWeek + "]");
+                    LOGGER.warn("Topic seems in use, not deleting: [" + topicName + "], totalUsage: [" + publishCountInLastWeek + "]");
+                    continue;
+                }
             }
-            topicsToDelete.add(snsResource.getResourceName());
+            topicsToDelete.add(topicName);
             cloudwatchAlarmsToDelete.addAll(snsResource.getCloudwatchAlarms());
         }
 

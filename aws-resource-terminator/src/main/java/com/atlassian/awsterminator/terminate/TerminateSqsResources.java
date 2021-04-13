@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sqs.AmazonSQS;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -35,9 +36,19 @@ public class TerminateSqsResources extends TerminateResourcesWithProvider implem
         super(configuration);
     }
 
+    @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
 
     @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonSQS sqsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS();
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
         AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
@@ -45,17 +56,28 @@ public class TerminateSqsResources extends TerminateResourcesWithProvider implem
 
         // Resources to be removed
         LinkedHashSet<String> queuesToDelete = new LinkedHashSet<>();
-        //LinkedHashSet<String> dlqsToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> lambdaTriggersToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> snsSubscriptionsToDelete = new LinkedHashSet<>();
         LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.SQS, new FetcherConfiguration(getConfiguration()));
-        List<SQSResource> sqsResourceList = (List<SQSResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<SQSResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<SQSResource> sqsResourceList = fetcher.fetchResources(region, resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
-            queuesToDelete.add(sqsResource.getResourceName());
+            String queueName = sqsResource.getResourceName();
+            Double totalUsage = (Double) fetcher.getUsage(region, queueName, lastUsage);
+            if (totalUsage > 0) {
+                if (force) {
+                    details.add("SQS queue seems in use, but still deleting with force: [" + queueName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("SQS queue seems in use, but still deleting with force: [" + queueName + "], totalUsage: [" + totalUsage + "]");
+                } else {
+                    details.add("SQS queue seems in use, not deleting: [" + queueName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("SQS queue seems in use, not deleting: [" + queueName + "], totalUsage: [" + totalUsage + "]");
+                    continue;
+                }
+            }
+            queuesToDelete.add(queueName);
             lambdaTriggersToDelete.addAll(sqsResource.getLambdaTriggers());
             snsSubscriptionsToDelete.addAll(sqsResource.getSnsSubscriptions());
             cloudwatchAlarmsToDelete.addAll(sqsResource.getCloudwatchAlarms());
@@ -66,7 +88,6 @@ public class TerminateSqsResources extends TerminateResourcesWithProvider implem
                 .append("* Dry-Run: ").append(!apply).append("\n")
                 .append("* Lambda event-source mappings: ").append(lambdaTriggersToDelete).append("\n")
                 .append("* SNS subscriptions: ").append(snsSubscriptionsToDelete).append("\n")
-                //.append("* DLQs: ").append(dlqsToDelete).append("\n")
                 .append("* Queues: ").append(queuesToDelete).append("\n")
                 .append("* Cloudwatch alarms: ").append(cloudwatchAlarmsToDelete).append("\n");
 
@@ -88,8 +109,6 @@ public class TerminateSqsResources extends TerminateResourcesWithProvider implem
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
 
-            //dlqsToDelete.forEach(sqsClient::deleteQueue);
-
             queuesToDelete.forEach(sqsClient::deleteQueue);
         }
 
@@ -104,6 +123,7 @@ public class TerminateSqsResources extends TerminateResourcesWithProvider implem
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
+    //TODO: send to abstract class for all...
     private FetchResourceFactory<SQSResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;

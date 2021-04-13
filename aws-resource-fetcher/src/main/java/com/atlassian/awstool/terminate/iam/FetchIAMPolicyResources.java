@@ -31,7 +31,7 @@ public class FetchIAMPolicyResources extends FetchResourcesWithProvider implemen
     }
 
     @Override
-    public Object getUsage(String region, String resourceArn) {
+    public Object getUsage(String region, String resourceArn, int lastDays) {
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
         String jobId = iamClient.generateServiceLastAccessedDetails(new GenerateServiceLastAccessedDetailsRequest().withArn(resourceArn)).getJobId();

@@ -43,17 +43,17 @@ public class TerminateDynamoDBResourcesTest extends TerminatorTest {
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
         add(new DynamoDBResource()
-                .setResourceName("table1")
+                .setResourceName(TABLE_1)
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("table1 Read");
                     add("table1 Write");
                 }}));
         //.setTotalUsage(0.0));
         add(new DynamoDBResource()
-                .setResourceName("table2"));
+                .setResourceName(TABLE_2));
         //.setTotalUsage(1.0));
         add(new DynamoDBResource()
-                .setResourceName("table3"));
+                .setResourceName(TABLE_3));
         //.setTotalUsage(0.0));
     }};
 
@@ -74,19 +74,19 @@ public class TerminateDynamoDBResourcesTest extends TerminatorTest {
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
-                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_1));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_1), eq(7));
         doReturn(1.0)
-                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_2));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_2), eq(7));
         doReturn(0.0)
-                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_3));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(TABLE_3), eq(7));
     }
 
     @Test
     public void terminateResourcesWithApply() throws Exception {
         terminateDynamoDBResources.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, true);
 
-        verify(getAmazonDynamoDB()).deleteTable("table1");
-        verify(getAmazonDynamoDB()).deleteTable("table3");
+        verify(getAmazonDynamoDB()).deleteTable(TABLE_1);
+        verify(getAmazonDynamoDB()).deleteTable(TABLE_3);
         verifyNoMoreInteractions(getAmazonDynamoDB());
 
         ArgumentCaptor<DeleteAlarmsRequest> cwCaptor = ArgumentCaptor.forClass(DeleteAlarmsRequest.class);

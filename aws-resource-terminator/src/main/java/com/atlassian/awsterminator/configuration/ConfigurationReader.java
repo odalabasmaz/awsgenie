@@ -58,8 +58,8 @@ public class ConfigurationReader {
             destination.setResources(source.getResources());
         }
 
-        if (StringUtils.isNotEmpty(source.getTicket())) {
-            destination.setTicket(source.getTicket());
+        if (StringUtils.isNotEmpty(source.getDescription())) {
+            destination.setDescription(source.getDescription());
         }
 
         if (StringUtils.isNotEmpty(source.getAssumeRoleArn())) {

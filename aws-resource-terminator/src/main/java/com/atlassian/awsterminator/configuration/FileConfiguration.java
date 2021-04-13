@@ -1,8 +1,6 @@
 package com.atlassian.awsterminator.configuration;
 
-import com.atlassian.awsterminator.exception.ConfigurationValidationException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Objects;
@@ -17,8 +15,10 @@ public class FileConfiguration implements Configuration {
     private String region;
     private String service;
     private String resources;
-    private String ticket;
+    private int lastUsage = 7;
+    private String description;
     private String assumeRoleArn;
+    private boolean force;
 
     @Override
     public FileConfiguration cloneMe() {
@@ -26,8 +26,10 @@ public class FileConfiguration implements Configuration {
                 .setRegion(this.region)
                 .setService(this.service)
                 .setResources(this.resources)
-                .setTicket(this.ticket)
-                .setAssumeRoleArn(this.assumeRoleArn);
+                .setLastUsage(this.lastUsage)
+                .setDescription(this.description)
+                .setAssumeRoleArn(this.assumeRoleArn)
+                .setForce(this.force);
     }
 
     @Override
@@ -64,15 +66,38 @@ public class FileConfiguration implements Configuration {
     }
 
     @Override
-    public String getTicket() {
-        return ticket;
+    public int getLastUsage() {
+        return lastUsage;
     }
 
     @Override
-    public FileConfiguration setTicket(String ticket) {
-        this.ticket = ticket;
+    public FileConfiguration setLastUsage(int lastUsage) {
+        this.lastUsage = lastUsage;
         return this;
     }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public FileConfiguration setDescription(String ticket) {
+        this.description = ticket;
+        return this;
+    }
+
+    @Override
+    public boolean isForce() {
+        return force;
+    }
+
+    @Override
+    public FileConfiguration setForce(boolean force) {
+        this.force = force;
+        return this;
+    }
+
 
     @Override
     public String getAssumeRoleArn() {
@@ -90,14 +115,18 @@ public class FileConfiguration implements Configuration {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FileConfiguration that = (FileConfiguration) o;
-        return Objects.equals(region, that.region) && Objects.equals(service, that.service) &&
-                Objects.equals(resources, that.resources) && Objects.equals(ticket, that.ticket) &&
-                Objects.equals(assumeRoleArn, that.assumeRoleArn);
+        return Objects.equals(region, that.region)
+                && Objects.equals(service, that.service)
+                && Objects.equals(resources, that.resources)
+                && Objects.equals(lastUsage, that.lastUsage)
+                && Objects.equals(description, that.description)
+                && Objects.equals(assumeRoleArn, that.assumeRoleArn)
+                && Objects.equals(force, that.force);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(region, service, resources, ticket, assumeRoleArn);
+        return Objects.hash(region, service, resources, lastUsage, description, assumeRoleArn, force);
     }
 
     @Override
@@ -106,8 +135,10 @@ public class FileConfiguration implements Configuration {
                 .append("region", region)
                 .append("service", service)
                 .append("resources", resources)
-                .append("ticket", ticket)
+                .append("lastUsage", lastUsage)
+                .append("ticket", description)
                 .append("assumeRoleArn", assumeRoleArn)
+                .append("force", force)
                 .toString();
     }
 }

@@ -1,8 +1,7 @@
 package com.atlassian.awstool.terminate.sqs;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
-import com.amazonaws.services.cloudwatch.model.MetricAlarm;
+import com.amazonaws.services.cloudwatch.model.*;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsRequest;
@@ -20,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -133,6 +133,67 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
             consumer.accept(sqsResourceNameList);
             return listQueuesResult.getNextToken();
         });
+    }
+
+    @Override
+    public Object getUsage(String region, String resource, int lastDays) {
+        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+
+        Date endDate = new Date();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastDays));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(lastDays)).intValue();
+
+        // check RW usages for last week
+        GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
+                .withStartTime(startDate)
+                .withEndTime(endDate)
+                .withMaxDatapoints(100)
+                .withMetricDataQueries(
+                        new MetricDataQuery()
+                                .withId("m1")
+                                .withMetricStat(new MetricStat()
+                                        .withStat("Sum")
+                                        .withMetric(new Metric()
+                                                .withMetricName("NumberOfMessagesSent")
+                                                .withDimensions(new Dimension()
+                                                        .withName("QueueName")
+                                                        .withValue(resource)
+                                                )
+                                                .withNamespace("AWS/SQS")
+                                        )
+                                        .withPeriod(period)
+                                ),
+                        new MetricDataQuery()
+                                .withId("m2")
+                                .withMetricStat(new MetricStat()
+                                        .withStat("Sum")
+                                        .withMetric(new Metric()
+                                                .withMetricName("NumberOfMessagesReceived")
+                                                .withDimensions(new Dimension()
+                                                        .withName("QueueName")
+                                                        .withValue(resource)
+                                                )
+                                                .withNamespace("AWS/SQS")
+                                        )
+                                        .withPeriod(period)
+                                ),
+                        new MetricDataQuery()
+                                .withId("totalUsage")
+                                .withExpression("m1+m2")
+                )
+        );
+        //double totalUsage = result.getMetricDataResults().get(0).getValues().get(0);
+        Double totalUsage = 0d;
+
+        Optional<MetricDataResult> optionalMetricDataResult = result.getMetricDataResults().stream().filter(r -> r.getId().equals("totalUsage")).findFirst();
+        if (optionalMetricDataResult.isPresent() && optionalMetricDataResult.get().getValues().size() > 0) {
+            //Double totalUsage = result.getMetricDataResults().stream().filter(r -> r.getId().equals("totalUsage")).findFirst().map(u -> u.getValues().get(0)).orElse(0.0);
+            totalUsage = optionalMetricDataResult.get().getValues().get(0);
+        } else {
+            LOGGER.warn("totalUsage metric is not present for queue: " + resource);
+        }
+
+        return totalUsage;
     }
 
     private String getQueueNameFromURL(String queueURL) {

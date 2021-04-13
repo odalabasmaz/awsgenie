@@ -3,6 +3,7 @@ package com.atlassian.awsterminator.terminate;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -33,7 +34,19 @@ public class TerminateDynamoDBResources extends TerminateResourcesWithProvider i
     }
 
     @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
+    //TODO: deprecate me :)
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonDynamoDB dynamoDBClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
 
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
@@ -44,17 +57,23 @@ public class TerminateDynamoDBResources extends TerminateResourcesWithProvider i
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.DYNAMODB, new FetcherConfiguration(getConfiguration()));
-        List<DynamoDBResource> dynamoDBResourceList = (List<DynamoDBResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<DynamoDBResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<DynamoDBResource> dynamoDBResourceList = fetcher.fetchResources(region, resources, details);
 
         for (DynamoDBResource dynamodbResource : dynamoDBResourceList) {
-            Double totalUsage = (Double) fetcher.getUsage(region, dynamodbResource.getResourceName());
+            String tableName = dynamodbResource.getResourceName();
+            Double totalUsage = (Double) fetcher.getUsage(region, tableName, lastUsage);
             if (totalUsage > 0) {
-                details.add("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + totalUsage + "]");
-                LOGGER.warn("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + totalUsage + "]");
-                continue;
+                if (force) {
+                    details.add("DynamoDB table seems in use, but still deleting with force: [" + tableName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("DynamoDB table seems in use, but still deleting with force: [" + tableName + "], totalUsage: [" + totalUsage + "]");
+                } else {
+                    details.add("DynamoDB table seems in use, not deleting: [" + tableName + "], totalUsage: [" + totalUsage + "]");
+                    LOGGER.warn("DynamoDB table seems in use, not deleting: [" + tableName + "], totalUsage: [" + totalUsage + "]");
+                    continue;
+                }
             }
-            tablesToDelete.add(dynamodbResource.getResourceName());
+            tablesToDelete.add(tableName);
             cloudwatchAlarmsToDelete.addAll(dynamodbResource.getCloudwatchAlarmList());
         }
 

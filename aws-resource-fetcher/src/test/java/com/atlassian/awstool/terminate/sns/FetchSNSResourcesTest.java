@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
         AwsClientProvider.class
 })
 @PowerMockIgnore({
-        "javax.management.*"
+        "javax.management.*", "javax.script.*"
 })
 public class FetchSNSResourcesTest {
     private static final String TEST_REGION = "us-west-2";
@@ -161,7 +161,7 @@ public class FetchSNSResourcesTest {
         when(cloudWatchClient.getMetricData(org.mockito.Mockito.any(GetMetricDataRequest.class)))
                 .thenReturn(new GetMetricDataResult()
                         .withMetricDataResults(new MetricDataResult().withId("m1").withValues(4.13)));
-        Object usage = fetchSNSResources.getUsage(TEST_REGION, topicArn1);
+        Object usage = fetchSNSResources.getUsage(TEST_REGION, topicArn1, 7);
         assertThat(usage, is(equalTo(4.13)));
 
         ArgumentCaptor<GetMetricDataRequest> captor = ArgumentCaptor.forClass(GetMetricDataRequest.class);

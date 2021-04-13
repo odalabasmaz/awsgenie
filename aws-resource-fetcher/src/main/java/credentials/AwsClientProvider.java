@@ -30,12 +30,12 @@ import java.util.*;
 
 public class AwsClientProvider {
 
-    private static Map<String, AwsClientProvider> clientProviderMap = new HashMap<>();
+    private static final Map<String, AwsClientProvider> clientProviderMap = new HashMap<>();
     private static final Logger LOGGER = LogManager.getLogger(AwsClientProvider.class);
     private static final String STS_SESSION_NAME_PREFIX = "aws_resource_terminator_";
 
-    private AWSCredentialsProvider awsCredentialsProvider;
-    private String region;
+    private final AWSCredentialsProvider awsCredentialsProvider;
+    private final String region;
 
     private AmazonCloudWatchEvents amazonCloudWatchEvents;
     private AmazonCloudWatch amazonCloudWatch;
@@ -59,7 +59,6 @@ public class AwsClientProvider {
         this.awsCredentialsProvider = awsCredentialsProvider;
         this.region = region;
     }
-
 
     private static AWSCredentialsProvider createAwsCredentialsProvider(String assumeRoleArn, String region) {
         AWSSecurityTokenService stsClient = AWSSecurityTokenServiceClient.builder()
@@ -98,8 +97,8 @@ public class AwsClientProvider {
         return amazonIAM;
     }
 
-    public AWSSecurityTokenService getAmazonSts(){
-        if (amazonSts == null){
+    public AWSSecurityTokenService getAmazonSts() {
+        if (amazonSts == null) {
             amazonSts = AWSSecurityTokenServiceClientBuilder.standard().build();
         }
         return amazonSts;
