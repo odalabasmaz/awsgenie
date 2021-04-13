@@ -35,14 +35,10 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
         super(configuration);
     }
 
-
     @Override
     public List<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS();
-
-
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
-
         AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
@@ -126,11 +122,10 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
 
     @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
-
-        List<String> sqsResourceNameList = new ArrayList<>();
-
         consume((nextMarker) -> {
+            List<String> sqsResourceNameList = new ArrayList<>();
             ListQueuesResult listQueuesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonSQS().listQueues(new ListQueuesRequest().withNextToken(nextMarker));
+
             for (String queueUrl : listQueuesResult.getQueueUrls()) {
                 sqsResourceNameList.add(getQueueNameFromURL(queueUrl));
             }
