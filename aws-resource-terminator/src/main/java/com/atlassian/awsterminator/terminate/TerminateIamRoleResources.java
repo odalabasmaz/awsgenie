@@ -1,15 +1,17 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
-import com.amazonaws.services.identitymanagement.model.*;
+import com.amazonaws.services.identitymanagement.model.DeleteRolePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
+import com.amazonaws.services.identitymanagement.model.DetachRolePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.RemoveRoleFromInstanceProfileRequest;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
-import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
+import com.atlassian.awstool.terminate.iam.IAMRoleResource;
+import com.atlassian.awstool.terminate.iam.IamEntity;
 import credentials.AwsClientConfiguration;
 import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +23,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
@@ -46,9 +47,9 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
 
         // Resources to be removed
         LinkedHashSet<String> rolesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<RoleEntity> inlinePoliciesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<RoleEntity> instanceProfilesToDetach = new LinkedHashSet<>();
-        LinkedHashSet<RoleEntity> policiesToDetach = new LinkedHashSet<>();
+        LinkedHashSet<IamEntity> inlinePoliciesToDelete = new LinkedHashSet<>();
+        LinkedHashSet<IamEntity> instanceProfilesToDetach = new LinkedHashSet<>();
+        LinkedHashSet<IamEntity> policiesToDetach = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -69,18 +70,15 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
             details.add("IAM Role will be deleted: " + roleName);
             rolesToDelete.add(roleName);
 
-            List<RoleEntity> inlinePolicyNames = iamClient.listRolePolicies(new ListRolePoliciesRequest().withRoleName(roleName))
-                    .getPolicyNames().stream().map(p -> new RoleEntity(roleName, p)).collect(Collectors.toList());
+            LinkedHashSet<IamEntity> inlinePolicyNames = iamRoleResource.getInlinePolicies();
             details.add("-- Inline policies will be deleted: " + inlinePolicyNames);
             inlinePoliciesToDelete.addAll(inlinePolicyNames);
 
-            List<RoleEntity> instanceProfiles = iamClient.listInstanceProfilesForRole(new ListInstanceProfilesForRoleRequest().withRoleName(roleName))
-                    .getInstanceProfiles().stream().map(p -> new RoleEntity(roleName, p.getInstanceProfileName())).collect(Collectors.toList());
+            LinkedHashSet<IamEntity> instanceProfiles = iamRoleResource.getInstanceProfiles();
             details.add("-- Instance profiles will be detached: " + instanceProfiles);
             instanceProfilesToDetach.addAll(instanceProfiles);
 
-            List<RoleEntity> attachedPolicies = iamClient.listAttachedRolePolicies(new ListAttachedRolePoliciesRequest().withRoleName(roleName))
-                    .getAttachedPolicies().stream().map(p -> new RoleEntity(roleName, p.getPolicyArn())).collect(Collectors.toList());
+            LinkedHashSet<IamEntity> attachedPolicies = iamRoleResource.getAttachedPolicies();
             details.add("-- Attached profiles will be detached: " + attachedPolicies);
             policiesToDetach.addAll(attachedPolicies);
         }
@@ -99,9 +97,9 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
 
         if (apply) {
             LOGGER.info("Terminating the resources...");
-            inlinePoliciesToDelete.forEach(p -> iamClient.deleteRolePolicy(new DeleteRolePolicyRequest().withRoleName(p.roleName).withPolicyName(p.entityName)));
-            instanceProfilesToDetach.forEach(p -> iamClient.removeRoleFromInstanceProfile(new RemoveRoleFromInstanceProfileRequest().withRoleName(p.roleName).withInstanceProfileName(p.entityName)));
-            policiesToDetach.forEach(p -> iamClient.detachRolePolicy(new DetachRolePolicyRequest().withRoleName(p.roleName).withPolicyArn(p.entityName)));
+            inlinePoliciesToDelete.forEach(p -> iamClient.deleteRolePolicy(new DeleteRolePolicyRequest().withRoleName(p.getRoleName()).withPolicyName(p.getEntityName())));
+            instanceProfilesToDetach.forEach(p -> iamClient.removeRoleFromInstanceProfile(new RemoveRoleFromInstanceProfileRequest().withRoleName(p.getRoleName()).withInstanceProfileName(p.getEntityName())));
+            policiesToDetach.forEach(p -> iamClient.detachRolePolicy(new DetachRolePolicyRequest().withRoleName(p.getRoleName()).withPolicyArn(p.getEntityName())));
             rolesToDelete.forEach(r -> iamClient.deleteRole(new DeleteRoleRequest().withRoleName(r)));
         }
 
@@ -120,23 +118,6 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
             return this.fetchResourceFactory;
         } else {
             return new FetchResourceFactory<>();
-        }
-    }
-
-    /**
-     * Generic key-value for Role and the entity: policy, instance profile, etc.
-     */
-    private static class RoleEntity {
-        String roleName;
-        String entityName;
-
-        RoleEntity(String roleName, String entityName) {
-            this.roleName = roleName;
-            this.entityName = entityName;
-        }
-
-        public String toString() {
-            return roleName + "/" + entityName;
         }
     }
 }

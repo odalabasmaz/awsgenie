@@ -1,7 +1,6 @@
-package com.atlassian.awstool.terminate.iamrole;
+package com.atlassian.awstool.terminate.iam;
 
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.*;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
@@ -55,7 +54,15 @@ public class FetchIAMRoleResources extends FetchResourcesWithProvider implements
         for (String roleName : resources) {
             try {
                 Role role = iamClient.getRole(new GetRoleRequest().withRoleName(roleName)).getRole();
-                iamRoleResourceList.add(new IAMRoleResource().setResourceName(role.getRoleName()));
+                IAMRoleResource iamRoleResource = new IAMRoleResource();
+                iamRoleResource.setResourceName(role.getRoleName());
+                iamRoleResource.addInlinePolicies(iamClient.listRolePolicies(new ListRolePoliciesRequest().withRoleName(roleName))
+                        .getPolicyNames().stream().map(p -> new IamEntity(roleName, p)).collect(Collectors.toSet()));
+                iamRoleResource.addInstanceProfiles(iamClient.listInstanceProfilesForRole(new ListInstanceProfilesForRoleRequest().withRoleName(roleName))
+                        .getInstanceProfiles().stream().map(p -> new IamEntity(roleName, p.getInstanceProfileName())).collect(Collectors.toSet()));
+                iamRoleResource.addAttachedPolicies(iamClient.listAttachedRolePolicies(new ListAttachedRolePoliciesRequest().withRoleName(roleName))
+                        .getAttachedPolicies().stream().map(p -> new IamEntity(roleName, p.getPolicyArn())).collect(Collectors.toSet()));
+                iamRoleResourceList.add(iamRoleResource);
             } catch (NoSuchEntityException ex) {
                 details.add("!!! IAM Role not exists: [" + roleName + "]");
                 LOGGER.warn("!!! IAM Role not exists: [" + roleName + "]");

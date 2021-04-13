@@ -1,4 +1,4 @@
-package com.atlassian.awstool.terminate.iamPolicy;
+package com.atlassian.awstool.terminate.iam;
 
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.*;
@@ -79,7 +79,6 @@ public class FetchIAMPolicyResources extends FetchResourcesWithProvider implemen
             return listPoliciesResult.getMarker();
         });
     }
-
 
     public static String generatePolicyArn(String policyName, String accountId) {
         return "arn:aws:iam::" + accountId + ":policy/" + policyName;

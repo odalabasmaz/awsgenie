@@ -2,13 +2,12 @@ package com.atlassian.awstool.terminate;
 
 import com.atlassian.awstool.terminate.cloudwatch.FetchCloudwatchResources;
 import com.atlassian.awstool.terminate.dynamodb.FetchDynamodbResources;
-import com.atlassian.awstool.terminate.iamPolicy.FetchIAMPolicyResources;
-import com.atlassian.awstool.terminate.iamrole.FetchIAMRoleResources;
+import com.atlassian.awstool.terminate.iam.FetchIAMPolicyResources;
+import com.atlassian.awstool.terminate.iam.FetchIAMRoleResources;
 import com.atlassian.awstool.terminate.kinesis.FetchKinesisResources;
 import com.atlassian.awstool.terminate.lambda.FetchLambdaResources;
 import com.atlassian.awstool.terminate.sns.FetchSNSResources;
 import com.atlassian.awstool.terminate.sqs.FetchSQSResources;
-import credentials.AwsClientConfiguration;
 
 import javax.naming.OperationNotSupportedException;
 

@@ -40,7 +40,6 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
         super(configuration);
     }
 
-
     @Override
     public List<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
@@ -54,6 +53,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
 
         // process each lambda
         for (String lambdaName : resources) {
+            LOGGER.info("Processing for lambda: [" + lambdaName + "]");
             try {
                 LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
                 LinkedHashSet<String> snsTriggersToDelete = new LinkedHashSet<>();
@@ -89,9 +89,12 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
 
                         } else {
                             // unexpected trigger received
-                            throw new UnsupportedOperationException("Unsupported trigger found: " + sourceArn);
+                            //TODO: check if there is another option that we should consider: api-gw
+                            LOGGER.warn("Unsupported trigger found: " + sourceArn);
                         }
                     });
+                } catch (ResourceNotFoundException ex) {
+                    LOGGER.info("Lambda policy not exists: " + lambdaName);
                 } catch (Exception ex) {
                     LOGGER.warn("ex.getMessage()" + ex.getMessage());
                 }
@@ -113,6 +116,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
                 details.add(String.format("Resources info for: [%s], sns triggers: %s, event source mappings: %s, cw rules: %s, cw rule targets: %s, cw alarms: %s",
                         lambdaName, snsTriggersToDelete, eventSourceMappingsToDelete, cloudwatchRulesToDelete, cloudwatchRuleTargetsToDelete, cloudwatchAlarmsToDelete));
 
+                LOGGER.info("Process successfully completed for lambda: [" + lambdaName + "]");
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! Lambda resource not exists: " + lambdaName);
                 LOGGER.warn("Lambda resource not exists: " + lambdaName);

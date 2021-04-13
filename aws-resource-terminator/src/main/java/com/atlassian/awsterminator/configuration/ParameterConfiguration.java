@@ -33,6 +33,12 @@ public class ParameterConfiguration implements Configuration {
     @Parameter(names = {"--apply", "-a"}, description = "Apply the changes, dry-run by default")
     private boolean apply = false;
 
+    @Parameter(names = {"--force"}, description = "Force applying the changes, even the usage confirmed")
+    private boolean force = false;
+
+    @Parameter(names = {"--last-usage"}, description = "Check usage for the last X days")
+    private int lastUsage;
+
     @Parameter(names = {"--configuration-file", "-cf"}, description = "Use configuration file")
     private String configurationFile;
 
@@ -49,6 +55,8 @@ public class ParameterConfiguration implements Configuration {
                 .setTicket(this.ticket)
                 .setAssumeRoleArn(this.assumeRoleArn)
                 .setApply(this.apply)
+                .setForce(this.force)
+                .setLastUsage(this.lastUsage)
                 .setConfigurationFile(this.configurationFile);
     }
 
@@ -116,6 +124,24 @@ public class ParameterConfiguration implements Configuration {
         return this;
     }
 
+    public boolean isForce() {
+        return force;
+    }
+
+    public ParameterConfiguration setForce(boolean force) {
+        this.force = force;
+        return this;
+    }
+
+    public int getLastUsage() {
+        return lastUsage;
+    }
+
+    public ParameterConfiguration setLastUsage(int lastUsage) {
+        this.lastUsage = lastUsage;
+        return this;
+    }
+
     public String getConfigurationFile() {
         return configurationFile;
     }
@@ -130,9 +156,14 @@ public class ParameterConfiguration implements Configuration {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ParameterConfiguration that = (ParameterConfiguration) o;
-        return apply == that.apply && Objects.equals(region, that.region) && Objects.equals(service, that.service)
-                && Objects.equals(resources, that.resources) && Objects.equals(ticket, that.ticket)
+        return apply == that.apply
+                && force == that.force
+                && Objects.equals(region, that.region)
+                && Objects.equals(service, that.service)
+                && Objects.equals(resources, that.resources)
+                && Objects.equals(ticket, that.ticket)
                 && Objects.equals(assumeRoleArn, that.assumeRoleArn)
+                && Objects.equals(lastUsage, that.lastUsage)
                 && Objects.equals(configurationFile, that.configurationFile);
     }
 
@@ -150,6 +181,8 @@ public class ParameterConfiguration implements Configuration {
                 .append("ticket", ticket)
                 .append("assumeRoleArn", assumeRoleArn)
                 .append("apply", apply)
+                .append("force", force)
+                .append("lastUsage", lastUsage)
                 .append("configurationFile", configurationFile)
                 .toString();
     }

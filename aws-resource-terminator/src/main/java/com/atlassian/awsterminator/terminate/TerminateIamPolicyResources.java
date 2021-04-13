@@ -1,18 +1,13 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient;
 import com.amazonaws.services.identitymanagement.model.DeletePolicyRequest;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
-import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
-import com.atlassian.awstool.terminate.iamPolicy.IAMPolicyResource;
+import com.atlassian.awstool.terminate.iam.IAMPolicyResource;
 import credentials.AwsClientConfiguration;
 import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
@@ -32,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 public class TerminateIamPolicyResources extends TerminateResourcesWithProvider implements TerminateResources<IAMPolicyResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateIamPolicyResources.class);
-    private String accountId;
 
     private FetchResourceFactory<IAMPolicyResource> fetchResourceFactory;
 
@@ -45,9 +39,6 @@ public class TerminateIamPolicyResources extends TerminateResourcesWithProvider 
 
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
-        this.accountId = AwsClientProvider.getInstance(getConfiguration()).getAmazonSts().getCallerIdentity(new GetCallerIdentityRequest()).getAccount();
-
-
         // Resources to be removed
         LinkedHashSet<String> policiesToDelete = new LinkedHashSet<>();
 
@@ -57,42 +48,18 @@ public class TerminateIamPolicyResources extends TerminateResourcesWithProvider 
         Date endDate = new Date();
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
 
-        /*for (String policyName : resources) {
-            try {
-                String policyArn = generatePolicyArn(policyName);
-                Policy policy = iamClient.getPolicy(new GetPolicyRequest().withPolicyArn(policyArn)).getPolicy();
-
-                String jobId = iamClient.generateServiceLastAccessedDetails(new GenerateServiceLastAccessedDetailsRequest().withArn(policyArn)).getJobId();
-                List<ServiceLastAccessed> servicesLastAccessed = iamClient.getServiceLastAccessedDetails(new GetServiceLastAccessedDetailsRequest().withJobId(jobId)).getServicesLastAccessed();
-                Optional<ServiceLastAccessed> latestUsageByAnyService = servicesLastAccessed.stream().max(Comparator.comparing(ServiceLastAccessed::getLastAuthenticated));
-
-                if (latestUsageByAnyService.isPresent()
-                        && latestUsageByAnyService.get().getLastAuthenticated() != null
-                        && latestUsageByAnyService.get().getLastAuthenticated().after(referenceDate)) {
-                    details.add("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
-                    LOGGER.warn("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(referenceDate) + "]");
-                    continue;
-                }
-
-                details.add("IAM Policy will be deleted: [" + policyName + "]");
-                policiesToDelete.add(policy.getArn());
-            } catch (NoSuchEntityException ex) {
-                details.add("!!! IAM Policy not exists: [" + policyName + "]");
-                LOGGER.warn("!!! IAM Policy not exists: [" + policyName + "]");
-            }
-        }*/
-
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.IAM_POLICY, new FetcherConfiguration(getConfiguration()));
-        List<IAMPolicyResource> iamPolicyResourceList = (List<IAMPolicyResource>) fetcher.fetchResources(region, resources, details);
+        FetchResources<IAMPolicyResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_POLICY, new FetcherConfiguration(getConfiguration()));
+        List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
-            Date lastUsedDate = (Date) fetcher.getUsage(region, iamPolicyResource.getResourceName());
+            String policyName = iamPolicyResource.getResourceName();
+            Date lastUsedDate = (Date) fetcher.getUsage(region, policyName);
             if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
-                details.add("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
-                LOGGER.warn("IAM policy seems in use, not deleting: [" + iamPolicyResource.getResourceName() + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                details.add("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                LOGGER.warn("IAM policy seems in use, not deleting: [" + policyName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
                 continue;
             }
-            policiesToDelete.add(iamPolicyResource.getResourceName());
+            policiesToDelete.add(policyName);
         }
 
         StringBuilder info = new StringBuilder()
@@ -116,10 +83,6 @@ public class TerminateIamPolicyResources extends TerminateResourcesWithProvider 
                 .forEach(interceptor -> interceptor.intercept(service, iamPolicyResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
-    }
-
-    private String generatePolicyArn(String policyName) {
-        return "arn:aws:iam::" + accountId + ":policy/" + policyName;
     }
 
     void setFetchResourceFactory(FetchResourceFactory<IAMPolicyResource> fetchResourceFactory) {

@@ -7,6 +7,8 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest;
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityResult;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
+import com.atlassian.awstool.terminate.iam.FetchIAMPolicyResources;
+import com.atlassian.awstool.terminate.iam.IAMPolicyResource;
 import credentials.AwsClientProvider;
 import org.junit.Before;
 import org.junit.Test;
