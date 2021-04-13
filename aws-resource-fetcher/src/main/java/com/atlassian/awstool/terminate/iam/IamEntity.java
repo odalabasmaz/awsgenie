@@ -1,4 +1,4 @@
-package com.atlassian.awstool.terminate.iamrole;
+package com.atlassian.awstool.terminate.iam;
 
 public class IamEntity {
     private String roleName;

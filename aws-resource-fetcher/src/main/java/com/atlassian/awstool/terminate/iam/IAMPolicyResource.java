@@ -1,4 +1,4 @@
-package com.atlassian.awstool.terminate.iamPolicy;
+package com.atlassian.awstool.terminate.iam;
 
 import com.atlassian.awstool.terminate.AWSResource;
 import org.apache.commons.lang3.builder.ToStringBuilder;

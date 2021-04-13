@@ -1,4 +1,4 @@
-package com.atlassian.awstool.terminate.iamrole;
+package com.atlassian.awstool.terminate.iam;
 
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.*;

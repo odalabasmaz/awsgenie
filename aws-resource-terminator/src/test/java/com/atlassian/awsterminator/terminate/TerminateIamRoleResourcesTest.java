@@ -1,23 +1,17 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.model.*;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
-import com.atlassian.awstool.terminate.FetchResourceFactory;
-import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.Service;
-import com.atlassian.awstool.terminate.iamrole.IAMRoleResource;
+import com.atlassian.awstool.terminate.iam.IAMRoleResource;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.List;

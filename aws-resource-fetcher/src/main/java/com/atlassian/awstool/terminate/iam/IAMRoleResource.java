@@ -1,4 +1,4 @@
-package com.atlassian.awstool.terminate.iamrole;
+package com.atlassian.awstool.terminate.iam;
 
 import com.atlassian.awstool.terminate.AWSResource;
 
@@ -25,26 +25,38 @@ public class IAMRoleResource extends AWSResource {
         return inlinePolicies;
     }
 
-    public IAMRoleResource addInlinePolicies(Set<IamEntity> inlinePolicies) {
-        this.inlinePolicies.addAll(inlinePolicies);
+    public IAMRoleResource setInlinePolicies(Set<IamEntity> inlinePolicies) {
+        this.inlinePolicies = new LinkedHashSet<>(inlinePolicies);
         return this;
+    }
+
+    public void addInlinePolicies(Set<IamEntity> inlinePolicies) {
+        this.inlinePolicies.addAll(inlinePolicies);
     }
 
     public LinkedHashSet<IamEntity> getInstanceProfiles() {
         return instanceProfiles;
     }
 
-    public IAMRoleResource addInstanceProfiles(Set<IamEntity> instanceProfiles) {
-        this.instanceProfiles.addAll(instanceProfiles);
+    public IAMRoleResource setInstanceProfiles(Set<IamEntity> instanceProfiles) {
+        this.instanceProfiles = new LinkedHashSet<>(instanceProfiles);
         return this;
+    }
+
+    public void addInstanceProfiles(Set<IamEntity> instanceProfiles) {
+        this.instanceProfiles.addAll(instanceProfiles);
     }
 
     public LinkedHashSet<IamEntity> getAttachedPolicies() {
         return attachedPolicies;
     }
 
-    public IAMRoleResource addAttachedPolicies(Set<IamEntity> attachedPolicies) {
-        this.attachedPolicies.addAll(attachedPolicies);
+    public IAMRoleResource setAttachedPolicies(Set<IamEntity> attachedPolicies) {
+        this.attachedPolicies = new LinkedHashSet<>(attachedPolicies);
         return this;
+    }
+
+    public void addAttachedPolicies(Set<IamEntity> attachedPolicies) {
+        this.attachedPolicies.addAll(attachedPolicies);
     }
 }
