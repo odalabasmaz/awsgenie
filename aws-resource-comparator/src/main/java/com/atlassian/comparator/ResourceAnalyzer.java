@@ -1,15 +1,36 @@
 package com.atlassian.comparator;
 
+import com.atlassian.awstool.terminate.FetchResources;
+
+import java.util.List;
+
+import static java.lang.Thread.sleep;
+
 public class ResourceAnalyzer {
-    //
-    //ResourcesFromA, ResourceFromB
-    //enrich and print
-    ResourceComparator comparator;
+    private final ResourceComparator comparator;
+    private final FetchResources sourceResourceFetcher;
+    private final FetchResources targetResourceFetcher;
+    private final long sleepBetweenIterations;
 
-    public void run() {
+    public ResourceAnalyzer(ResourceComparator comparator,
+                            FetchResources sourceResourceFetcher,
+                            FetchResources targetResourceFetcher,
+                            long sleepBetweenIterations) {
+        this.comparator = comparator;
+        this.sourceResourceFetcher = sourceResourceFetcher;
+        this.targetResourceFetcher = targetResourceFetcher;
+        this.sleepBetweenIterations = sleepBetweenIterations;
+    }
 
-        /*while(comparator.isRunning){
-
-        }*/
+    public void run() throws Exception {
+        while (comparator.isRunning()) {
+            List<String> commonObjects = comparator.getCommonQueue().getAll();
+            for (String commonObject : commonObjects) {
+                //TODO: fetch resources here and write results to output
+                System.out.println("result here!");
+            }
+            comparator.getCommonQueue().removeAll(commonObjects);
+            sleep(sleepBetweenIterations);
+        }
     }
 }

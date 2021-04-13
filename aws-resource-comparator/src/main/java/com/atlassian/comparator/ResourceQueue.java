@@ -1,10 +1,13 @@
 package com.atlassian.comparator;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ResourceQueue<T> {
     private final ConcurrentLinkedQueue<T> arrayDeque;
+    private Boolean isFinishedPopulating = false;
 
     public ResourceQueue() {
         this.arrayDeque = new ConcurrentLinkedQueue<>();
@@ -26,12 +29,20 @@ public class ResourceQueue<T> {
         return arrayDeque.addAll(collection);
     }
 
-    public ConcurrentLinkedQueue<T> getAll() {
-        return arrayDeque.clone();
+    public void removeAll(Collection<T> collection) {
+        arrayDeque.removeAll(collection);
     }
 
-    public T poll() {
-        return arrayDeque.poll();
+    public List<Object> getAll() {
+        return Arrays.asList(arrayDeque.toArray());
     }
-    //get, put, poll -> syhncronized
+
+    public Boolean isFinishedPopulating() {
+        return isFinishedPopulating;
+    }
+
+    public ResourceQueue<T> setFinishedPopulating(Boolean stoppedAdding) {
+        isFinishedPopulating = stoppedAdding;
+        return this;
+    }
 }

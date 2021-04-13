@@ -5,18 +5,16 @@ import com.atlassian.awstool.terminate.FetchResources;
 
 public class ResourceProducer<K extends AWSResource> extends BaseJob<K> {
     ResourceQueue<String> queueA;
+    private final FetchResources<K> fetchResources;
 
     public ResourceProducer(FetchResources<K> fetchResources, ResourceQueue<String> queueA) {
-        super(fetchResources);
+        this.fetchResources = fetchResources;
         this.queueA = queueA;
     }
 
     @Override
-    public void _run(FetchResources<K> fetchResources) throws Exception {
+    public void _run() throws Exception {
         fetchResources.listResources(resources -> queueA.addAll(resources));
-    }
-
-    public ResourceQueue<String> getValue() {
-        return new ResourceQueue<>(queueA.getAll());
+        queueA.setFinishedPopulating(true);
     }
 }

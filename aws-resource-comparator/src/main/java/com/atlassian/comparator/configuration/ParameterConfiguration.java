@@ -6,31 +6,41 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Objects;
 
-/**
- * @author Orhun Dalabasmaz
- * @version 10.03.2021
- */
-
 public class ParameterConfiguration {
-    @Parameter(names = {"--region", "-r"}, description = "AWS region")
-    private String region;
+    @Parameter(names = {"--sourceRegion", "-sr"}, description = "Source AWS region")
+    private String sourceRegion;
+
+    @Parameter(names = {"--targetRegion", "-tr"}, description = "Target AWS region")
+    private String targetRegion;
 
     @Parameter(names = {"--service", "-s"}, description = "AWS service name: sqs, lambda, dynamodb, cloudwatch, etc.")
     private String service;
 
-    @Parameter(names = {"--assume-role-arn", "-ara"}, description = "IAM Role ARN to assume")
-    private String assumeRoleArn;
+    @Parameter(names = {"--sourceAssumeRoleArn", "-sara"}, description = "IAM Role ARN to assume in source AWS account")
+    private String sourceAssumeRoleArn;
+
+    @Parameter(names = {"--targetAssumeRoleArn", "-sara"}, description = "IAM Role ARN to assume in target AWS account")
+    private String targetAssumeRoleArn;
 
     public void fromSystemArgs(String[] args) {
         new JCommander(this, args);
     }
 
-    public String getRegion() {
-        return region;
+    public String getSourceRegion() {
+        return sourceRegion;
     }
 
-    public ParameterConfiguration setRegion(String region) {
-        this.region = region;
+    public ParameterConfiguration setSourceRegion(String sourceRegion) {
+        this.sourceRegion = sourceRegion;
+        return this;
+    }
+
+    public String getTargetRegion() {
+        return targetRegion;
+    }
+
+    public ParameterConfiguration setTargetRegion(String targetRegion) {
+        this.targetRegion = targetRegion;
         return this;
     }
 
@@ -43,12 +53,21 @@ public class ParameterConfiguration {
         return this;
     }
 
-    public String getAssumeRoleArn() {
-        return assumeRoleArn;
+    public String getSourceAssumeRoleArn() {
+        return sourceAssumeRoleArn;
     }
 
-    public ParameterConfiguration setAssumeRoleArn(String assumeRoleArn) {
-        this.assumeRoleArn = assumeRoleArn;
+    public ParameterConfiguration setSourceAssumeRoleArn(String sourceAssumeRoleArn) {
+        this.sourceAssumeRoleArn = sourceAssumeRoleArn;
+        return this;
+    }
+
+    public String getTargetAssumeRoleArn() {
+        return targetAssumeRoleArn;
+    }
+
+    public ParameterConfiguration setTargetAssumeRoleArn(String targetAssumeRoleArn) {
+        this.targetAssumeRoleArn = targetAssumeRoleArn;
         return this;
     }
 
@@ -57,20 +76,22 @@ public class ParameterConfiguration {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ParameterConfiguration that = (ParameterConfiguration) o;
-        return Objects.equals(region, that.region) && Objects.equals(service, that.service) && Objects.equals(assumeRoleArn, that.assumeRoleArn);
+        return Objects.equals(sourceRegion, that.sourceRegion) && Objects.equals(targetRegion, that.targetRegion) && Objects.equals(service, that.service) && Objects.equals(sourceAssumeRoleArn, that.sourceAssumeRoleArn) && Objects.equals(targetAssumeRoleArn, that.targetAssumeRoleArn);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(region, service, assumeRoleArn);
+        return Objects.hash(sourceRegion, targetRegion, service, sourceAssumeRoleArn, targetAssumeRoleArn);
     }
 
     @Override
     public String toString() {
         return "ParameterConfiguration{" +
-                "region='" + region + '\'' +
+                "sourceRegion='" + sourceRegion + '\'' +
+                ", targetRegion='" + targetRegion + '\'' +
                 ", service='" + service + '\'' +
-                ", assumeRoleArn='" + assumeRoleArn + '\'' +
+                ", sourceAssumeRoleArn='" + sourceAssumeRoleArn + '\'' +
+                ", targetAssumeRoleArn='" + targetAssumeRoleArn + '\'' +
                 '}';
     }
 }

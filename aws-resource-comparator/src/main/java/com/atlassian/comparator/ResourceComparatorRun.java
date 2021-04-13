@@ -8,13 +8,12 @@ import com.atlassian.comparator.configuration.ParameterConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.naming.OperationNotSupportedException;
 import java.util.Arrays;
 
 public class ResourceComparatorRun {
     private static final Logger LOGGER = LogManager.getLogger(ResourceComparatorRun.class);
 
-    public static void main(String[] args) throws InterruptedException, OperationNotSupportedException {
+    public static void main(String[] args) throws Exception {
         ParameterConfiguration parameterConfiguration = new ParameterConfiguration();
 
         try {
@@ -24,24 +23,45 @@ public class ResourceComparatorRun {
                     + ParameterConfiguration.class.getSimpleName() + " Reason " + e, e);
         }
 
-        ResourceComparatorRun task = new ResourceComparatorRun();
+        ComparatorExecutor task = new ComparatorExecutor(2, 2);
         task.run(parameterConfiguration);
     }
 
-    public void run(ParameterConfiguration configuration) throws InterruptedException, OperationNotSupportedException {
-        ResourceQueue queueOne = new ResourceQueue();
-        ResourceQueue queueTwo = new ResourceQueue();
+    public static class ComparatorExecutor extends BaseExecutor {
 
-        FetchResources fetcher = new FetchResourceFactory<>().getFetcher(
-                Service.fromValue(configuration.getService()),
-                new FetcherConfiguration(configuration.getAssumeRoleArn(), configuration.getRegion())
-        );
+        public static final int SLEEP_BETWEEN_ITERATIONS = 5000;
 
-        ResourceProducer resourceProducerA = new ResourceProducer(fetcher, queueOne);
-        ResourceProducer resourceProducerB = new ResourceProducer(fetcher, queueTwo);
-        ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer();
+        public ComparatorExecutor(int numberOfThreads, int maxQueuesize) {
+            super(numberOfThreads, maxQueuesize);
+        }
 
-        ResourceComparator resourceComparator = new ResourceComparator(resourceProducerA, resourceProducerB, resourceAnalyzer);
-        resourceComparator.run();
+        public void run(ParameterConfiguration configuration) throws Exception {
+            FetchResources sourceFetcher = new FetchResourceFactory<>().getFetcher(
+                    Service.fromValue(configuration.getService()),
+                    new FetcherConfiguration(configuration.getSourceAssumeRoleArn(), configuration.getSourceRegion())
+            );
+            FetchResources targetFetcher = new FetchResourceFactory<>().getFetcher(
+                    Service.fromValue(configuration.getService()),
+                    new FetcherConfiguration(configuration.getTargetAssumeRoleArn(), configuration.getTargetRegion())
+            );
+
+            ResourceQueue<String> sourceQueue = new ResourceQueue();
+            ResourceQueue<String> targetQueue = new ResourceQueue();
+            ResourceQueue<String> commonQueue = new ResourceQueue();
+
+            ResourceProducer resourceProducerA = new ResourceProducer(sourceFetcher, sourceQueue);
+            ResourceProducer resourceProducerB = new ResourceProducer(targetFetcher, targetQueue);
+            ResourceComparator resourceComparator = new ResourceComparator(sourceQueue, targetQueue, commonQueue, SLEEP_BETWEEN_ITERATIONS);
+            ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer(resourceComparator, sourceFetcher, targetFetcher, SLEEP_BETWEEN_ITERATIONS);
+
+            runJob(resourceProducerA);
+            runJob(resourceProducerB);
+            runJob(resourceComparator);
+
+            resourceAnalyzer.run();
+            waitForTasks();
+        }
     }
+
+
 }

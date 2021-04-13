@@ -40,9 +40,7 @@ public class ResourceProducerTest<K extends AWSResource> {
             consumer.accept(resourceList);
             return "";
         }).when(fetchResources).listResources(any());
-        resourceProducer._run(fetchResources);
+        resourceProducer._run();
         verify(queue).addAll(resourceList);
     }
-
-
 }

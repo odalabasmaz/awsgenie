@@ -1,45 +1,48 @@
 package com.atlassian.comparator;
 
-import java.util.concurrent.ExecutionException;
+import java.util.List;
 
-public class ResourceComparator extends BaseExecutor {
-    public static final int THREAD_POOL_CAPACITY = 2;
-    public static final int MAX_NUMBER_OF_THREADS = 2;
-    public static final int MAX_QUEUE_SIZE = 2;
-    private final ResourceProducer resourceProducerA;
-    private final ResourceProducer resourceProducerB;
-    private final ResourceAnalyzer resourceAnalyzer;
+import static java.lang.Thread.sleep;
 
-    public ResourceComparator(ResourceProducer resourceProducerA,
-                              ResourceProducer resourceProducerB,
-                              ResourceAnalyzer resourceAnalyzer) {
-        super(MAX_NUMBER_OF_THREADS, MAX_QUEUE_SIZE);
-        this.resourceProducerA = resourceProducerA;
-        this.resourceProducerB = resourceProducerB;
-        this.resourceAnalyzer = resourceAnalyzer;
+public class ResourceComparator extends BaseJob {
+    private final ResourceQueue sourceQueue;
+    private final ResourceQueue targetQueue;
+    private final ResourceQueue commonQueue;
+
+    private final long sleepBetweenIterations;
+
+    public ResourceComparator(ResourceQueue sourceQueue,
+                              ResourceQueue targetQueue,
+                              ResourceQueue commonQueue,
+                              long sleepBetweenIterations
+    ) {
+        this.sourceQueue = sourceQueue;
+        this.targetQueue = targetQueue;
+        this.commonQueue = commonQueue;
+        this.sleepBetweenIterations = sleepBetweenIterations;
     }
 
-    //TODO: write baseJob and extend there
-    public void run() throws InterruptedException, ExecutionException {
-        runJob(resourceProducerA);
-        runJob(resourceProducerB);
+    @Override
+    public void _run() throws InterruptedException {
+        while (sourceQueue.isFinishedPopulating() || targetQueue.isFinishedPopulating()) {
+            extractCommonResources();
 
-        while (resourceProducerA.isRunning() && resourceProducerB.isRunning()) {
-            ResourceQueue valueA = resourceProducerA.getValue();
-            ResourceQueue valueB = resourceProducerB.getValue();
-            //TODO: get common resources here and send to resourceAnalyzer, then delete common ones from both queues.
-            resourceAnalyzer.submit();
-            Thread.sleep(2000);
+            sleep(sleepBetweenIterations);
         }
-        waitForTasks();
-        ResourceQueue valueA = resourceProducerA.dump();
-        ResourceQueue valueB = resourceProducerB.dump();
-        //compare ->
-        resourceAnalyzer.submit();
-        resourceAnalyzer.Diff();
+        extractCommonResources();
     }
 
-    // ResourceQueue
-    //run method
-    // check producers queue -> if exists compare queue message -> check intersection ...
+    public ResourceQueue getCommonQueue() {
+        return commonQueue;
+    }
+
+    private void extractCommonResources() {
+        List<String> sourceResourceList = sourceQueue.getAll();
+        List<String> targetResourceList = targetQueue.getAll();
+        sourceResourceList.retainAll(targetResourceList);
+
+        commonQueue.addAll(sourceResourceList);
+        sourceResourceList.removeAll(sourceResourceList);
+        targetResourceList.removeAll(sourceResourceList);
+    }
 }
