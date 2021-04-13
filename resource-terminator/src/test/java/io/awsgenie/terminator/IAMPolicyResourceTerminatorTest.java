@@ -65,7 +65,7 @@ public class IAMPolicyResourceTerminatorTest extends TerminatorTest {
         this.iamPolicyResourceTerminator = new IAMPolicyResourceTerminator(TerminatorHelper.getRegion1Account1Configuration());
         this.iamPolicyResourceTerminator.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate())
                 .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(POLICY_1), eq(7));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate())

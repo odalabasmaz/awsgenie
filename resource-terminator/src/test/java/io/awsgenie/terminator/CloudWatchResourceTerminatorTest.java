@@ -55,7 +55,7 @@ public class CloudWatchResourceTerminatorTest extends TerminatorTest {
         this.cloudwatchResourceTerminator = new CloudWatchResourceTerminator(TerminatorHelper.getRegion1Account1Configuration());
         cloudwatchResourceTerminator.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(getFetchResources()).fetchResources(TEST_REGION, TEST_RESOURCES, null);
+                .when(getFetchResources()).fetchResources(TEST_RESOURCES, null);
     }
 
     @Test

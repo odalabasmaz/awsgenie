@@ -24,13 +24,18 @@ public class ResourceAnalyzer {
 
     public void run() throws Exception {
         while (comparator.isRunning()) {
-            List<String> commonObjects = comparator.getCommonQueue().getAll();
-            for (String commonObject : commonObjects) {
-                //TODO: fetch resources here and write results to output
-                System.out.println("result here!");
-            }
-            comparator.getCommonQueue().removeAll(commonObjects);
+            processCommonQueue();
             sleep(sleepBetweenIterations);
         }
+        processCommonQueue();
+    }
+
+    private void processCommonQueue() {
+        List<String> commonObjects = comparator.getCommonQueue().getAll();
+        for (String commonObject : commonObjects) {
+            //TODO: fetch resources here and write results to output
+            System.out.println("commonObject: " + commonObject);
+        }
+        comparator.getCommonQueue().removeAll(commonObjects);
     }
 }

@@ -1,5 +1,6 @@
 package com.atlassian.comparator;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +35,7 @@ public class ResourceQueue<T> {
     }
 
     public List<Object> getAll() {
-        return Arrays.asList(arrayDeque.toArray());
+        return new ArrayList<>(Arrays.asList(arrayDeque.toArray()));
     }
 
     public Boolean isFinishedPopulating() {

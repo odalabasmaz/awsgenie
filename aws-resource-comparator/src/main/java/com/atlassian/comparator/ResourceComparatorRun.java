@@ -54,8 +54,11 @@ public class ResourceComparatorRun {
             ResourceComparator resourceComparator = new ResourceComparator(sourceQueue, targetQueue, commonQueue, SLEEP_BETWEEN_ITERATIONS);
             ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer(resourceComparator, sourceFetcher, targetFetcher, SLEEP_BETWEEN_ITERATIONS);
 
+            //resourceProducerA.run();
             runJob(resourceProducerA);
+            //resourceProducerB.run();
             runJob(resourceProducerB);
+            //resourceComparator.run();
             runJob(resourceComparator);
 
             resourceAnalyzer.run();

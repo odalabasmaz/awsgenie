@@ -24,7 +24,7 @@ public class ResourceComparator extends BaseJob {
 
     @Override
     public void _run() throws InterruptedException {
-        while (sourceQueue.isFinishedPopulating() || targetQueue.isFinishedPopulating()) {
+        while (!sourceQueue.isFinishedPopulating() && !targetQueue.isFinishedPopulating()) {
             extractCommonResources();
 
             sleep(sleepBetweenIterations);
@@ -42,7 +42,7 @@ public class ResourceComparator extends BaseJob {
         sourceResourceList.retainAll(targetResourceList);
 
         commonQueue.addAll(sourceResourceList);
-        sourceResourceList.removeAll(sourceResourceList);
-        targetResourceList.removeAll(sourceResourceList);
+        sourceQueue.removeAll(sourceResourceList);
+        targetQueue.removeAll(sourceResourceList);
     }
 }

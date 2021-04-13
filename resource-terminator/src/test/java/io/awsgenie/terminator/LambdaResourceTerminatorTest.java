@@ -85,7 +85,7 @@ public class LambdaResourceTerminatorTest extends TerminatorTest {
         this.lambdaResourceTerminator.setFetchResourceFactory(getFetchResourceFactory());
 
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(getFetchResources()).fetchResources(eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
     }
 
     @Test

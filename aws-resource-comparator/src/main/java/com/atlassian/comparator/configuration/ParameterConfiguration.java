@@ -19,7 +19,7 @@ public class ParameterConfiguration {
     @Parameter(names = {"--sourceAssumeRoleArn", "-sara"}, description = "IAM Role ARN to assume in source AWS account")
     private String sourceAssumeRoleArn;
 
-    @Parameter(names = {"--targetAssumeRoleArn", "-sara"}, description = "IAM Role ARN to assume in target AWS account")
+    @Parameter(names = {"--targetAssumeRoleArn", "-tara"}, description = "IAM Role ARN to assume in target AWS account")
     private String targetAssumeRoleArn;
 
     public void fromSystemArgs(String[] args) {
