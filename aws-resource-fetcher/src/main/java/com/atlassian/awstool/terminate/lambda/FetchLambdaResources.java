@@ -1,21 +1,15 @@
 package com.atlassian.awstool.terminate.lambda;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.policy.Policy;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DescribeAlarmsRequest;
 import com.amazonaws.services.cloudwatch.model.MetricAlarm;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
-import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClient;
 import com.amazonaws.services.cloudwatchevents.model.ListTargetsByRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.Target;
 import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.*;
 import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.atlassian.awstool.terminate.AWSResource;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
@@ -23,8 +17,9 @@ import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.security.auth.login.Configuration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -69,7 +64,7 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
 
                 // sns & cw triggers
                 try {
-                    Policy policy = policy = Policy.fromJson(lambdaClient.getPolicy(new GetPolicyRequest().withFunctionName(lambdaName)).getPolicy());
+                    Policy policy = Policy.fromJson(lambdaClient.getPolicy(new GetPolicyRequest().withFunctionName(lambdaName)).getPolicy());
                     policy.getStatements().forEach(s -> {
                         String sourceArn = s.getConditions().get(0).getValues().get(0);
                         if (sourceArn.startsWith("arn:aws:sns:")) {
@@ -131,10 +126,8 @@ public class FetchLambdaResources extends FetchResourcesWithProvider implements 
 
     @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
-
-        List<String> lambdaResourceNameList = new ArrayList<>();
-
         consume((String nextMarker) -> {
+            List<String> lambdaResourceNameList = new ArrayList<>();
             ListFunctionsResult listFunctionsResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda().listFunctions(new ListFunctionsRequest().withMarker(nextMarker));
             for (FunctionConfiguration functionConfiguration : listFunctionsResult.getFunctions()) {
                 lambdaResourceNameList.add(functionConfiguration.getFunctionName());
