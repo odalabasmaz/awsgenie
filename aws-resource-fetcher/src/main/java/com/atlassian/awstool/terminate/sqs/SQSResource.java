@@ -1,8 +1,10 @@
 package com.atlassian.awstool.terminate.sqs;
 
 import com.atlassian.awstool.terminate.AWSResource;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.LinkedHashSet;
+import java.util.Objects;
 
 public class SQSResource extends AWSResource {
     private String resourceName;
@@ -45,5 +47,28 @@ public class SQSResource extends AWSResource {
     public SQSResource setLambdaTriggers(LinkedHashSet<String> lambdaTriggers) {
         this.lambdaTriggers = lambdaTriggers;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SQSResource that = (SQSResource) o;
+        return Objects.equals(resourceName, that.resourceName) && Objects.equals(cloudwatchAlarms, that.cloudwatchAlarms) && Objects.equals(snsSubscriptions, that.snsSubscriptions) && Objects.equals(lambdaTriggers, that.lambdaTriggers);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(resourceName, cloudwatchAlarms, snsSubscriptions, lambdaTriggers);
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("resourceName", resourceName)
+                .append("cloudwatchAlarms", cloudwatchAlarms)
+                .append("snsSubscriptions", snsSubscriptions)
+                .append("lambdaTriggers", lambdaTriggers)
+                .toString();
     }
 }

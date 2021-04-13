@@ -16,6 +16,7 @@ import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
 import credentials.AwsClientProvider;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 @RunWith(PowerMockRunner.class)
 @PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "javax.crypto.*", "javax.security.*", "sun.security.*"})
 @PrepareForTest(AwsClientProvider.class)
+@Ignore
 public class TerminatorTest {
 
 

@@ -1,7 +1,6 @@
 package com.atlassian.awstool.terminate.dynamodb;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.*;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.ListTablesRequest;
@@ -24,10 +23,10 @@ import java.util.function.Consumer;
  * @version 10.03.2021
  */
 
-public class FetchDynamodbResources extends FetchResourcesWithProvider implements FetchResources<DynamodbResource> {
-    private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
+public class FetchDynamoDBResources extends FetchResourcesWithProvider implements FetchResources<DynamoDBResource> {
+    private static final Logger LOGGER = LogManager.getLogger(FetchDynamoDBResources.class);
 
-    public FetchDynamodbResources(FetcherConfiguration configuration) {
+    public FetchDynamoDBResources(FetcherConfiguration configuration) {
         super(configuration);
     }
 
@@ -102,12 +101,12 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
     }
 
     @Override
-    public List<DynamodbResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public List<DynamoDBResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
 
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
-        List<DynamodbResource> dynamodbResourceList = new ArrayList<>();
+        List<DynamoDBResource> dynamoDBResourceList = new ArrayList<>();
 
         // process each dynamodb tables
         for (String tableName : resources) {
@@ -123,9 +122,9 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                DynamodbResource dynamodbResource = new DynamodbResource().setResourceName(tableName);
+                DynamoDBResource dynamodbResource = new DynamoDBResource().setResourceName(tableName);
                 dynamodbResource.getCloudwatchAlarmList().addAll(cloudwatchAlarms);
-                dynamodbResourceList.add(dynamodbResource);
+                dynamoDBResourceList.add(dynamodbResource);
 
                 details.add(String.format("Resources info for: [%s], [%s] items on table, cw alarms: %s",
                         tableName, itemCount, cloudwatchAlarms));
@@ -135,6 +134,6 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
                 LOGGER.warn("DynamoDB table not exists: " + tableName);
             }
         }
-        return dynamodbResourceList;
+        return dynamoDBResourceList;
     }
 }

@@ -6,7 +6,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 
-public class DynamodbResource extends AWSResource {
+public class DynamoDBResource extends AWSResource {
     private String resourceName;
     private LinkedHashSet<String> cloudwatchAlarmList = new LinkedHashSet<>();
 
@@ -16,7 +16,7 @@ public class DynamodbResource extends AWSResource {
         return resourceName;
     }
 
-    public DynamodbResource setResourceName(String resourceName) {
+    public DynamoDBResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;
     }
@@ -25,7 +25,7 @@ public class DynamodbResource extends AWSResource {
         return cloudwatchAlarmList;
     }
 
-    public DynamodbResource setCloudwatchAlarmList(LinkedHashSet<String> cloudwatchAlarmList) {
+    public DynamoDBResource setCloudwatchAlarmList(LinkedHashSet<String> cloudwatchAlarmList) {
         this.cloudwatchAlarmList = cloudwatchAlarmList;
         return this;
     }
@@ -34,7 +34,7 @@ public class DynamodbResource extends AWSResource {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DynamodbResource that = (DynamodbResource) o;
+        DynamoDBResource that = (DynamoDBResource) o;
         return Objects.equals(resourceName, that.resourceName) && Objects.equals(cloudwatchAlarmList, that.cloudwatchAlarmList);
     }
 

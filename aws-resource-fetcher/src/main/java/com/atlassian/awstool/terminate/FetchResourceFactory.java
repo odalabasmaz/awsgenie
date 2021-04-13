@@ -1,7 +1,7 @@
 package com.atlassian.awstool.terminate;
 
 import com.atlassian.awstool.terminate.cloudwatch.FetchCloudwatchResources;
-import com.atlassian.awstool.terminate.dynamodb.FetchDynamodbResources;
+import com.atlassian.awstool.terminate.dynamodb.FetchDynamoDBResources;
 import com.atlassian.awstool.terminate.iam.FetchIAMPolicyResources;
 import com.atlassian.awstool.terminate.iam.FetchIAMRoleResources;
 import com.atlassian.awstool.terminate.kinesis.FetchKinesisResources;
@@ -26,7 +26,7 @@ public class FetchResourceFactory<R extends AWSResource> {
         } else if (Service.CLOUDWATCH.equals(service)) {
             return (FetchResources<R>) new FetchCloudwatchResources(configuration);
         } else if (Service.DYNAMODB.equals(service)) {
-            return (FetchResources<R>) new FetchDynamodbResources(configuration);
+            return (FetchResources<R>) new FetchDynamoDBResources(configuration);
         } else if (Service.SQS.equals(service)) {
             return (FetchResources<R>) new FetchSQSResources(configuration);
         } else if (Service.IAM_ROLE.equals(service)) {

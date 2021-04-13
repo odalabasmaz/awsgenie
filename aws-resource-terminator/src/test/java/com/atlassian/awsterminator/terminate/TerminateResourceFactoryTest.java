@@ -1,9 +1,8 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.atlassian.awstool.terminate.Service;
 import com.atlassian.awstool.terminate.cloudwatch.CloudwatchResource;
-import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
+import com.atlassian.awstool.terminate.dynamodb.DynamoDBResource;
 import com.atlassian.awstool.terminate.iam.IAMPolicyResource;
 import com.atlassian.awstool.terminate.iam.IAMRoleResource;
 import com.atlassian.awstool.terminate.kinesis.KinesisResource;
@@ -14,8 +13,7 @@ import credentials.AwsClientConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.naming.OperationNotSupportedException;
 
@@ -31,9 +29,6 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TerminateResourceFactoryTest {
-    @Mock
-    private AWSCredentialsProvider credentialsProvider;
-
     private TerminateResourceFactory terminateResourceFactory;
 
     @Before
@@ -50,7 +45,7 @@ public class TerminateResourceFactoryTest {
         assertThat(cloudwatch, is(instanceOf(TerminateCloudwatchResources.class)));
         TerminateResources<LambdaResource> lambda = terminateResourceFactory.getTerminator(Service.LAMBDA, configuration);
         assertThat(lambda, is(instanceOf(TerminateLambdaResources.class)));
-        TerminateResources<DynamodbResource> dynamodb = terminateResourceFactory.getTerminator(Service.DYNAMODB, configuration);
+        TerminateResources<DynamoDBResource> dynamodb = terminateResourceFactory.getTerminator(Service.DYNAMODB, configuration);
         assertThat(dynamodb, is(instanceOf(TerminateDynamoDBResources.class)));
         TerminateResources<SNSResource> sns = terminateResourceFactory.getTerminator(Service.SNS, configuration);
         assertThat(sns, is(instanceOf(TerminateSnsResources.class)));
