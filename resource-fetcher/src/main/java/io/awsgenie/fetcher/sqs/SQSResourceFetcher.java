@@ -114,6 +114,7 @@ public class FetchSQSResources extends FetchResourcesWithProvider implements Fet
                 sqsResource.getCloudwatchAlarms().addAll(cwAlarms);
                 sqsResource.getSnsSubscriptions().addAll(snsSubscriptionArns);
                 sqsResource.getLambdaTriggers().addAll(eventSourceIds);
+                sqsResource.setQueueAttributes(attributes);
 
                 sqsResourceList.add(sqsResource);
             } catch (QueueDoesNotExistException ex) {

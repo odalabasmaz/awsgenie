@@ -4,6 +4,8 @@ import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
+import com.atlassian.comparator.analyser.BaseResourceAnalyzer;
+import com.atlassian.comparator.analyser.ResourceAnalyzerFactory;
 import com.atlassian.comparator.configuration.ParameterConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +25,7 @@ public class ResourceComparatorRun {
                     + ParameterConfiguration.class.getSimpleName() + " Reason " + e, e);
         }
 
-        ComparatorExecutor task = new ComparatorExecutor(2, 2);
+        ComparatorExecutor task = new ComparatorExecutor(3, 3);
         task.run(parameterConfiguration);
     }
 
@@ -52,7 +54,8 @@ public class ResourceComparatorRun {
             ResourceProducer resourceProducerA = new ResourceProducer(sourceFetcher, sourceQueue);
             ResourceProducer resourceProducerB = new ResourceProducer(targetFetcher, targetQueue);
             ResourceComparator resourceComparator = new ResourceComparator(sourceQueue, targetQueue, commonQueue, SLEEP_BETWEEN_ITERATIONS);
-            ResourceAnalyzer resourceAnalyzer = new ResourceAnalyzer(resourceComparator, sourceFetcher, targetFetcher, SLEEP_BETWEEN_ITERATIONS);
+            BaseResourceAnalyzer resourceAnalyzer = ResourceAnalyzerFactory.getAnalyzer(Service.fromValue(configuration.getService()),
+                    resourceComparator, sourceFetcher, targetFetcher, SLEEP_BETWEEN_ITERATIONS);
 
             //resourceProducerA.run();
             runJob(resourceProducerA);

@@ -3,7 +3,9 @@ package io.awsgenie.fetcher.sqs;
 import io.awsgenie.fetcher.Resource;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 
 public class SQSResource extends Resource {
@@ -11,10 +13,21 @@ public class SQSResource extends Resource {
     private LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
     private LinkedHashSet<String> snsSubscriptions = new LinkedHashSet<>();
     private LinkedHashSet<String> lambdaTriggers = new LinkedHashSet<>();
+    private Map<String, String> queueAttributes = new HashMap<>();
 
     @Override
     public String getResourceName() {
         return resourceName;
+    }
+
+    @Override
+    public Object getResourceObject() {
+        return queueAttributes;
+    }
+
+    public SQSResource setQueueAttributes(Map<String, String> queueAttributes) {
+        this.queueAttributes = queueAttributes;
+        return this;
     }
 
     public SQSResource setResourceName(String resourceName) {

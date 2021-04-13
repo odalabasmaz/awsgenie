@@ -13,6 +13,11 @@ public class IAMPolicyResource extends Resource {
         return resourceName;
     }
 
+    @Override
+    public Object getResourceObject() {
+        return null;
+    }
+
     public IAMPolicyResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;

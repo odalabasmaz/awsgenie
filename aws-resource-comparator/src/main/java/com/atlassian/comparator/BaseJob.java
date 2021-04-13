@@ -4,17 +4,17 @@ import com.atlassian.awstool.terminate.AWSResource;
 
 public abstract class BaseJob<K extends AWSResource> {
 
-    private boolean isRunning = false;
+    private boolean isFinished = false;
 
     public abstract void _run() throws Exception;
 
     public void run() throws Exception {
-        isRunning = true;
+        isFinished = false;
         _run();
-        isRunning = false;
+        isFinished = true;
     }
 
-    public boolean isRunning() {
-        return isRunning;
+    public boolean isFinished() {
+        return isFinished;
     }
 }

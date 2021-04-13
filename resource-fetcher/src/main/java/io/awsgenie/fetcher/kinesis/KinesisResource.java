@@ -20,6 +20,11 @@ public class KinesisResource extends Resource {
         return resourceName;
     }
 
+    @Override
+    public Object getResourceObject() {
+        return null;
+    }
+
     public KinesisResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;
