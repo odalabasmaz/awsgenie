@@ -3,8 +3,11 @@ package com.atlassian.awstool.terminate.kinesis;
 import com.amazonaws.arn.Arn;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.*;
+import com.amazonaws.services.kinesis.AmazonKinesis;
+import com.amazonaws.services.kinesis.model.DescribeStreamResult;
 import com.amazonaws.services.kinesis.model.ListStreamsRequest;
 import com.amazonaws.services.kinesis.model.ListStreamsResult;
+import com.amazonaws.services.kinesis.model.ResourceNotFoundException;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
 import com.amazonaws.services.lambda.model.ListEventSourceMappingsResult;
@@ -98,6 +101,7 @@ public class FetchKinesisResources extends FetchResourcesWithProvider implements
     public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
         AWSLambda lambdaClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonLambda();
+        AmazonKinesis kinesisClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
 
         Map<String, List<String>> eventSourceMappings = new LinkedHashMap<>();
         String marker;
@@ -121,21 +125,23 @@ public class FetchKinesisResources extends FetchResourcesWithProvider implements
 
         for (String stream : resources) {
             try {
+                DescribeStreamResult describeStreamResult = kinesisClient.describeStream(stream);
+                String streamName = describeStreamResult.getStreamDescription().getStreamName();
                 LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
 
                 // Cloudwatch alarms
-                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("Kinesis stream " + stream + " is"))
+                cloudWatchClient.describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("Kinesis stream " + streamName + " is"))
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                KinesisResource kinesisResource = new KinesisResource().setResourceName(stream);
+                KinesisResource kinesisResource = new KinesisResource().setResourceName(streamName);
                 kinesisResource.getCloudwatchAlarmList().addAll(cloudwatchAlarms);
                 kinesisResourceList.add(kinesisResource);
 
-                List<String> lambdas = eventSourceMappings.get(stream);
+                List<String> lambdas = eventSourceMappings.get(streamName);
 
-                details.add(String.format("Resources info for: [%s], lambdas this stream triggers: [%s], cw alarms: %s",
-                        stream, lambdas, cloudwatchAlarms));
+                details.add(String.format("Resources info for: [%s], lambdas this stream triggers: %s, cw alarms: %s",
+                        streamName, lambdas, cloudwatchAlarms));
 
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! Kinesis stream not exists: " + stream);
@@ -148,11 +154,9 @@ public class FetchKinesisResources extends FetchResourcesWithProvider implements
 
     @Override
     public void listResources(String region, Consumer<List<String>> consumer) {
-        List<String> kinesisResourceNameList = new ArrayList<>();
-
         consume((nextMarker) -> {
             ListStreamsResult listStreamsResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonKinesis().listStreams(new ListStreamsRequest().withExclusiveStartStreamName(nextMarker));
-            kinesisResourceNameList.addAll(listStreamsResult.getStreamNames());
+            List<String> kinesisResourceNameList = listStreamsResult.getStreamNames();
 
             consumer.accept(kinesisResourceNameList);
 
