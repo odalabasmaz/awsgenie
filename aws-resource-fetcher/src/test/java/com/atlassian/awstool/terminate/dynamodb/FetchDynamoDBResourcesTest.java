@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
 @PowerMockIgnore({
         "javax.management.*"
 })
-public class FetchDynamodbResourcesTest {
+public class FetchDynamoDBResourcesTest {
     private static final String TEST_REGION = "us-west-2";
 
     @Mock
@@ -55,7 +55,7 @@ public class FetchDynamodbResourcesTest {
     @Mock
     private AwsClientProvider awsClientProvider;
 
-    private FetchDynamodbResources fetchDynamodbResources;
+    private FetchDynamoDBResources fetchDynamodbResources;
 
     @Before
     public void setUp() throws Exception {
@@ -67,7 +67,7 @@ public class FetchDynamodbResourcesTest {
         when(awsClientProvider.getAmazonDynamoDB())
                 .thenReturn(dynamoDBClient);
 
-        this.fetchDynamodbResources = new FetchDynamodbResources(fetcherConfiguration);
+        this.fetchDynamodbResources = new FetchDynamoDBResources(fetcherConfiguration);
     }
 
     @Test
@@ -104,14 +104,14 @@ public class FetchDynamodbResourcesTest {
         tables.add("table1");
         tables.add("table2");
 
-        List<DynamodbResource> actualDynamodbResources = fetchDynamodbResources.fetchResources(TEST_REGION, tables, details);
+        List<DynamoDBResource> actualDynamoDBResources = fetchDynamodbResources.fetchResources(TEST_REGION, tables, details);
 
         verify(dynamoDBClient).describeTable("table1");
         verify(dynamoDBClient).describeTable("table2");
         verify(cloudWatchClient).describeAlarms(new DescribeAlarmsRequest().withAlarmNamePrefix("DynamoDB table table1 "));
 
-        assertThat(actualDynamodbResources.size(), is(equalTo(1)));
-        assertThat(actualDynamodbResources, hasItem(new DynamodbResource()
+        assertThat(actualDynamoDBResources.size(), is(equalTo(1)));
+        assertThat(actualDynamoDBResources, hasItem(new DynamoDBResource()
                 .setResourceName("table1")
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("alarm1");

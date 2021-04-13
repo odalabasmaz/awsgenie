@@ -1,18 +1,14 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.atlassian.awstool.terminate.Service;
-import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
+import com.atlassian.awstool.terminate.dynamodb.DynamoDBResource;
 import credentials.AwsClientConfiguration;
 import credentials.AwsClientProvider;
 import org.apache.logging.log4j.LogManager;
@@ -27,10 +23,10 @@ import java.util.List;
  * @version 10.03.2021
  */
 
-public class TerminateDynamoDBResources extends TerminateResourcesWithProvider implements TerminateResources<DynamodbResource> {
+public class TerminateDynamoDBResources extends TerminateResourcesWithProvider implements TerminateResources<DynamoDBResource> {
     private static final Logger LOGGER = LogManager.getLogger(TerminateDynamoDBResources.class);
 
-    private FetchResourceFactory<DynamodbResource> fetchResourceFactory;
+    private FetchResourceFactory<DynamoDBResource> fetchResourceFactory;
 
     public TerminateDynamoDBResources(AwsClientConfiguration configuration) {
         super(configuration);
@@ -49,9 +45,9 @@ public class TerminateDynamoDBResources extends TerminateResourcesWithProvider i
         List<String> details = new LinkedList<>();
 
         FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.DYNAMODB, new FetcherConfiguration(getConfiguration()));
-        List<DynamodbResource> dynamodbResourceList = (List<DynamodbResource>) fetcher.fetchResources(region, resources, details);
+        List<DynamoDBResource> dynamoDBResourceList = (List<DynamoDBResource>) fetcher.fetchResources(region, resources, details);
 
-        for (DynamodbResource dynamodbResource : dynamodbResourceList) {
+        for (DynamoDBResource dynamodbResource : dynamoDBResourceList) {
             Double totalUsage = (Double) fetcher.getUsage(region, dynamodbResource.getResourceName());
             if (totalUsage > 0) {
                 details.add("DynamoDB table seems in use, not deleting: [" + dynamodbResource.getResourceName() + "], totalUsage: [" + totalUsage + "]");
@@ -73,7 +69,7 @@ public class TerminateDynamoDBResources extends TerminateResourcesWithProvider i
         LOGGER.info(info);
 
         InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, dynamodbResourceList, info.toString(), apply));
+                .forEach(interceptor -> interceptor.intercept(service, dynamoDBResourceList, info.toString(), apply));
 
         if (apply) {
             LOGGER.info("Terminating the resources...");
@@ -86,16 +82,16 @@ public class TerminateDynamoDBResources extends TerminateResourcesWithProvider i
         }
 
         InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, dynamodbResourceList, info.toString(), apply));
+                .forEach(interceptor -> interceptor.intercept(service, dynamoDBResourceList, info.toString(), apply));
 
         LOGGER.info("Succeed.");
     }
 
-    void setFetchResourceFactory(FetchResourceFactory<DynamodbResource> fetchResourceFactory) {
+    void setFetchResourceFactory(FetchResourceFactory<DynamoDBResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }
 
-    private FetchResourceFactory<DynamodbResource> getFetchResourceFactory() {
+    private FetchResourceFactory<DynamoDBResource> getFetchResourceFactory() {
         if (this.fetchResourceFactory != null) {
             return this.fetchResourceFactory;
         } else {

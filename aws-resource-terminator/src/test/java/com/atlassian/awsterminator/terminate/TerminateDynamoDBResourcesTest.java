@@ -1,23 +1,16 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.atlassian.awsterminator.interceptor.AfterTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.BeforeTerminateInterceptor;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.AWSResource;
-import com.atlassian.awstool.terminate.FetchResourceFactory;
-import com.atlassian.awstool.terminate.FetchResources;
 import com.atlassian.awstool.terminate.Service;
-import com.atlassian.awstool.terminate.dynamodb.DynamodbResource;
+import com.atlassian.awstool.terminate.dynamodb.DynamoDBResource;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -49,17 +42,17 @@ public class TerminateDynamoDBResourcesTest extends TerminatorTest {
     }};
 
     private static final List<AWSResource> TEST_FETCHED_RESOURCES = new ArrayList<AWSResource>() {{
-        add(new DynamodbResource()
+        add(new DynamoDBResource()
                 .setResourceName("table1")
                 .setCloudwatchAlarmList(new LinkedHashSet<String>() {{
                     add("table1 Read");
                     add("table1 Write");
                 }}));
         //.setTotalUsage(0.0));
-        add(new DynamodbResource()
+        add(new DynamoDBResource()
                 .setResourceName("table2"));
         //.setTotalUsage(1.0));
-        add(new DynamodbResource()
+        add(new DynamoDBResource()
                 .setResourceName("table3"));
         //.setTotalUsage(0.0));
     }};
