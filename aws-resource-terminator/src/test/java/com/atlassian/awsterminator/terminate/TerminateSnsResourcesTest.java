@@ -79,9 +79,9 @@ public class TerminateSnsResourcesTest extends TerminatorTest {
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_1));
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_1), eq(7));
         doReturn(1.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_2));
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(TOPIC_2), eq(7));
     }
 
     @Test

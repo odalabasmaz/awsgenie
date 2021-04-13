@@ -46,7 +46,7 @@ import static org.mockito.Mockito.*;
         AwsClientProvider.class
 })
 @PowerMockIgnore({
-        "javax.management.*"
+        "javax.management.*", "javax.script.*"
 })
 public class FetchLambdaResourcesTest {
     private static final String TEST_REGION = "us-west-2";

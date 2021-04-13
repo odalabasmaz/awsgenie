@@ -32,19 +32,30 @@ public class TerminateCloudwatchResources extends TerminateResourcesWithProvider
         super(configuration);
     }
 
+    @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
 
     @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
-        FetchResources fetcher = getFetchResourceFactory().getFetcher(Service.CLOUDWATCH, new FetcherConfiguration(getConfiguration()));
-        List<CloudwatchResource> cloudwatchResourceList = (List<CloudwatchResource>) fetcher.fetchResources(region, resources, null);
+        FetchResources<CloudwatchResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<CloudwatchResource> cloudwatchResourceList = fetcher.fetchResources(region, resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);
         for (CloudwatchResource cloudwatchResource : cloudwatchResourceList) {
-            cloudwatchAlarmsNotToDelete.remove(cloudwatchResource.getResourceName());
-            cloudwatchAlarmsToDelete.add(cloudwatchResource.getResourceName());
+            String alarmName = cloudwatchResource.getResourceName();
+            cloudwatchAlarmsNotToDelete.remove(alarmName);
+            cloudwatchAlarmsToDelete.add(alarmName);
         }
 
         StringBuilder info = new StringBuilder()
@@ -69,6 +80,7 @@ public class TerminateCloudwatchResources extends TerminateResourcesWithProvider
 
         LOGGER.info("Succeed.");
     }
+
     void setFetchResourceFactory(FetchResourceFactory<CloudwatchResource> fetchResourceFactory) {
         this.fetchResourceFactory = fetchResourceFactory;
     }

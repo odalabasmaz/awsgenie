@@ -1,19 +1,14 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.DeleteAlarmsRequest;
 import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEvents;
-import com.amazonaws.services.cloudwatchevents.AmazonCloudWatchEventsClient;
 import com.amazonaws.services.cloudwatchevents.model.DeleteRuleRequest;
 import com.amazonaws.services.cloudwatchevents.model.RemoveTargetsRequest;
 import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.DeleteEventSourceMappingRequest;
 import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
 import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
 import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
@@ -45,7 +40,18 @@ public class TerminateLambdaResources extends TerminateResourcesWithProvider imp
     }
 
     @Override
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
     public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
 
@@ -65,8 +71,8 @@ public class TerminateLambdaResources extends TerminateResourcesWithProvider imp
 
         List<String> details = new LinkedList<>();
 
-        FetchResources fetchResources = getFetchResourceFactory().getFetcher(Service.LAMBDA, new FetcherConfiguration(getConfiguration()));
-        List<LambdaResource> lambdaResourceList = (List<LambdaResource>) fetchResources.fetchResources(region, resources, details);
+        FetchResources<LambdaResource> fetchResources = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
+        List<LambdaResource> lambdaResourceList = fetchResources.fetchResources(region, resources, details);
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());

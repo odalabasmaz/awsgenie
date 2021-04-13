@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*;
         AWSSecurityTokenServiceClientBuilder.class
 })
 @PowerMockIgnore({
-        "javax.management.*"
+        "javax.management.*", "javax.script.*"
 })
 public class FetchIAMPolicyResourcesTest {
     private static final String TEST_REGION = "us-west-2";
@@ -138,7 +138,7 @@ public class FetchIAMPolicyResourcesTest {
                         new ServiceLastAccessed()
                                 .withLastAuthenticated(lastAccessed)
                 ));
-        Date actual = (Date) fetchIAMPolicyResources.getUsage(TEST_REGION, "arn1");
+        Date actual = (Date) fetchIAMPolicyResources.getUsage(TEST_REGION, "arn1", 7);
         assertThat(actual, is(equalTo(lastAccessed)));
     }
 }

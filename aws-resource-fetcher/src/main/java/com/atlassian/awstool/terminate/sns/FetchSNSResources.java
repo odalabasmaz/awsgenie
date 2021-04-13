@@ -31,12 +31,12 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
     }
 
     @Override
-    public Object getUsage(String region, String resource) {
+    public Object getUsage(String region, String resource, int lastDays) {
         AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastDays));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(lastDays)).intValue();
 
         String topicName = getResourceFromArn(resource);
 

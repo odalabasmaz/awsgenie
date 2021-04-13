@@ -34,11 +34,10 @@ import static org.mockito.Mockito.when;
  */
 
 @RunWith(PowerMockRunner.class)
-@PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "javax.crypto.*", "javax.security.*", "sun.security.*"})
+@PowerMockIgnore({"javax.net.ssl.*", "javax.management.*", "javax.crypto.*", "javax.security.*", "javax.script.*", "sun.security.*"})
 @PrepareForTest(AwsClientProvider.class)
 @Ignore
-public class TerminatorTest {
-
+public abstract class TerminatorTest {
 
     @Mock
     private AmazonCloudWatch cloudWatchClient;
@@ -82,7 +81,6 @@ public class TerminatorTest {
         when(provider.getAmazonSNS()).thenReturn(amazonSNS);
         when(provider.getAmazonLambda()).thenReturn(amazonLambda);
         when(provider.getAmazonSts()).thenReturn(amazonSts);
-
     }
 
     public AmazonCloudWatch getCloudWatchClient() {

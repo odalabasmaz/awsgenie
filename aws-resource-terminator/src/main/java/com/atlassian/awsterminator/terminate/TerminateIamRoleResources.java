@@ -5,6 +5,7 @@ import com.amazonaws.services.identitymanagement.model.DeleteRolePolicyRequest;
 import com.amazonaws.services.identitymanagement.model.DeleteRoleRequest;
 import com.amazonaws.services.identitymanagement.model.DetachRolePolicyRequest;
 import com.amazonaws.services.identitymanagement.model.RemoveRoleFromInstanceProfileRequest;
+import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awsterminator.interceptor.InterceptorRegistry;
 import com.atlassian.awstool.terminate.FetchResourceFactory;
 import com.atlassian.awstool.terminate.FetchResources;
@@ -41,8 +42,18 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
     }
 
     @Override
-    public void terminateResource(String region,
-                                  Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+    public void terminateResource(Configuration conf, boolean apply) throws Exception {
+        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+                conf.getLastUsage(), conf.isForce(), apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        terminateResource(region, service, resources, ticket, 7, false, apply);
+    }
+
+    @Override
+    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
         // Resources to be removed
@@ -54,18 +65,23 @@ public class TerminateIamRoleResources extends TerminateResourcesWithProvider im
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date endDate = new Date();
-        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7)); //TODO: make this configurable...
+        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage)); //TODO: make this configurable...
 
-        FetchResources<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(Service.IAM_ROLE, new FetcherConfiguration(getConfiguration()));
+        FetchResources<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(service, new FetcherConfiguration(getConfiguration()));
         List<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
             String roleName = iamRoleResource.getResourceName();
-            Date lastUsedDate = (Date) fetcher.getUsage(region, roleName);
+            Date lastUsedDate = (Date) fetcher.getUsage(region, roleName, lastUsage);
             if (lastUsedDate != null && lastUsedDate.after(referenceDate)) {
-                details.add("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
-                LOGGER.warn("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
-                continue;
+                if (force) {
+                    details.add("IAM role seems in use, but still deleting with force: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    LOGGER.warn("IAM role seems in use, but still deleting with force: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                } else {
+                    details.add("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    LOGGER.warn("IAM role seems in use, not deleting: [" + roleName + "], lastUsageDate: [" + sdf.format(lastUsedDate) + "]");
+                    continue;
+                }
             }
             details.add("IAM Role will be deleted: " + roleName);
             rolesToDelete.add(roleName);

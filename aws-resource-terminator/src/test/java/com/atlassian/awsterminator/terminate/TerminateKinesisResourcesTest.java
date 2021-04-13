@@ -92,11 +92,11 @@ public class TerminateKinesisResourcesTest extends TerminatorTest {
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(fetchResources).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_1));
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_1), eq(7));
         doReturn(0.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_2));
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_2), eq(7));
         doReturn(1.0)
-                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_3));
+                .when(fetchResources).getUsage(eq(TEST_REGION), eq(STREAM_3), eq(7));
     }
 
     @Test

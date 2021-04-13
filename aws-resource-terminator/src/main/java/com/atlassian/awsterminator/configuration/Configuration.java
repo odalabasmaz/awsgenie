@@ -1,7 +1,6 @@
 package com.atlassian.awsterminator.configuration;
 
 import com.atlassian.awsterminator.exception.ConfigurationValidationException;
-import com.atlassian.awstool.terminate.FetcherConfiguration;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import credentials.AwsClientConfiguration;
 import org.apache.commons.lang3.StringUtils;
@@ -37,13 +36,21 @@ public interface Configuration extends AwsClientConfiguration {
 
     Configuration setResources(String resources);
 
-    String getTicket();
+    int getLastUsage();
 
-    Configuration setTicket(String ticket);
+    Configuration setLastUsage(int lastUsage);
+
+    String getDescription();
+
+    Configuration setDescription(String ticket);
 
     String getAssumeRoleArn();
 
     Configuration setAssumeRoleArn(String assumeRoleArn);
+
+    boolean isForce();
+
+    Configuration setForce(boolean force);
 
     Configuration cloneMe();
 
@@ -60,7 +67,7 @@ public interface Configuration extends AwsClientConfiguration {
                 throw new ConfigurationValidationException("resources is required.");
             }
 
-            if (StringUtils.isEmpty(getTicket())) {
+            if (StringUtils.isEmpty(getDescription())) {
                 throw new ConfigurationValidationException("ticket is required.");
             }
     }

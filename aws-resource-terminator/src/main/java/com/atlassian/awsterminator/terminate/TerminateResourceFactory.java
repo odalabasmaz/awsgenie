@@ -1,7 +1,5 @@
 package com.atlassian.awsterminator.terminate;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.atlassian.awsterminator.configuration.Configuration;
 import com.atlassian.awstool.terminate.Service;
 import credentials.AwsClientConfiguration;
 

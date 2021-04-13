@@ -66,9 +66,9 @@ public class TerminateIamRoleResourcesTest extends TerminatorTest {
         doReturn(TEST_FETCHED_RESOURCES)
                 .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(8)).toDate())
-                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_1));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_1), eq(7));
         doReturn(DateTime.now().minus(TimeUnit.DAYS.toMillis(5)).toDate())
-                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_2));
+                .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(ROLE_2), eq(7));
     }
 
     @Test

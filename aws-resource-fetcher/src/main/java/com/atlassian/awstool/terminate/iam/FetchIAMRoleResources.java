@@ -28,7 +28,7 @@ public class FetchIAMRoleResources extends FetchResourcesWithProvider implements
 
 
     @Override
-    public Object getUsage(String region, String resource) {
+    public Object getUsage(String region, String resource, int lastDays) {
         AmazonIdentityManagement iamClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
         Role role = iamClient.getRole(new GetRoleRequest().withRoleName(resource)).getRole();
