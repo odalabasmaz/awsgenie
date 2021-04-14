@@ -25,10 +25,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -162,7 +159,7 @@ public class SQSResourceFetcherTest {
         resources.add("queue3");
         List<String> details = new ArrayList<>();
 
-        List<SQSResource> actualResources = SQSResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<SQSResource> actualResources = SQSResourceFetcher.fetchResources(TEST_REGION, resources, details);
 
         assertThat(actualResources.size(), is(equalTo(2)));
         assertThat(actualResources, hasItem(new SQSResource()

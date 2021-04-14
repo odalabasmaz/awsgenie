@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -47,7 +48,7 @@ public class SQSResourceTerminatorTest extends TerminatorTest {
         add(QUEUE_3);
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new SQSResource()
                 .setResourceName(QUEUE_1)
                 .setCloudwatchAlarms(new LinkedHashSet<String>() {{
@@ -135,10 +136,29 @@ public class SQSResourceTerminatorTest extends TerminatorTest {
 
     @Test
     public void interceptorsAreCalled() throws Exception {
+        Set<Resource> deletableResources = new LinkedHashSet<Resource>() {{
+            add(new SQSResource()
+                    .setResourceName(QUEUE_1)
+                    .setCloudwatchAlarms(new LinkedHashSet<String>() {{
+                        add("SQS Queue queue1");
+                    }})
+                    .setLambdaTriggers(new LinkedHashSet<String>() {{
+                        add("lambda1");
+                    }})
+                    .setSnsSubscriptions(new LinkedHashSet<String>() {{
+                        add("sns1");
+                    }}));
+            add(new SQSResource()
+                    .setResourceName(QUEUE_3)
+                    .setCloudwatchAlarms(new LinkedHashSet<String>() {{
+                        add("SQS Queue queue3");
+                    }}));
+        }};
+
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         sqsResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
     }
 }

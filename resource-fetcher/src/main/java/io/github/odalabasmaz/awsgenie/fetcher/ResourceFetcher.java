@@ -1,6 +1,7 @@
 package io.github.odalabasmaz.awsgenie.fetcher;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -11,7 +12,7 @@ import java.util.function.Function;
 
 public interface ResourceFetcher<R extends Resource> {
 
-    List<R> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
+    Set<R> fetchResources(String region, List<String> resources, List<String> details) throws Exception;
 
     void listResources(String region, Consumer<List<String>> consumer) throws Exception;
 

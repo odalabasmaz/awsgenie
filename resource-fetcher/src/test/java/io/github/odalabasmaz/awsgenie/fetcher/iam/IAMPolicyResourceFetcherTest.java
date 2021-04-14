@@ -20,6 +20,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -116,7 +117,7 @@ public class IAMPolicyResourceFetcherTest {
         resources.add("policy2");
         resources.add("policy3");
         List<String> details = new ArrayList<>();
-        List<IAMPolicyResource> actualResources = IAMPolicyResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<IAMPolicyResource> actualResources = IAMPolicyResourceFetcher.fetchResources(TEST_REGION, resources, details);
 
         verify(iamClient, times(3)).getPolicy(org.mockito.Mockito.any(GetPolicyRequest.class));
 

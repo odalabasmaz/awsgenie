@@ -14,20 +14,17 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import io.github.odalabasmaz.awsgenie.fetcher.sqs.SQSResource;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
-import io.github.odalabasmaz.awsgenie.terminator.interceptor.InterceptorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Orhun Dalabasmaz
  * @version 10.03.2021
  */
 
-public class SQSResourceTerminator extends ResourceTerminatorWithProvider implements ResourceTerminator<SQSResource> {
+public class SQSResourceTerminator extends ResourceTerminator<SQSResource> {
     private static final Logger LOGGER = LogManager.getLogger(SQSResourceTerminator.class);
 
     private ResourceFetcherFactory<SQSResource> resourceFetcherFactory;
@@ -37,33 +34,24 @@ public class SQSResourceTerminator extends ResourceTerminatorWithProvider implem
     }
 
     @Override
-    public void terminateResource(Configuration conf, boolean apply) throws Exception {
-        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+    public Set<SQSResource> beforeApply(Configuration conf, boolean apply) throws Exception {
+        return beforeApply(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
                 conf.getLastUsage(), conf.isForce(), apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        terminateResource(region, service, resources, ticket, 7, false, apply);
+    protected Set<SQSResource> beforeApply(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        return beforeApply(region, service, resources, ticket, 7, false, apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
-        AmazonSQS sqsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSQS();
-        AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
-        AWSLambda lambdaClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonLambda();
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
-
+    protected Set<SQSResource> beforeApply(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         // Resources to be removed
-        LinkedHashSet<String> queuesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> lambdaTriggersToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> snsSubscriptionsToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
+        Set<SQSResource> queuesToDelete = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<SQSResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<SQSResource> sqsResourceList = fetcher.fetchResources(region, resources, details);
+        Set<SQSResource> sqsResourceList = fetcher.fetchResources(region, resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
             String queueName = sqsResource.getResourceName();
             Double totalUsage = (Double) fetcher.getUsage(region, queueName, lastUsage);
@@ -77,28 +65,50 @@ public class SQSResourceTerminator extends ResourceTerminatorWithProvider implem
                     continue;
                 }
             }
-            queuesToDelete.add(queueName);
-            lambdaTriggersToDelete.addAll(sqsResource.getLambdaTriggers());
-            snsSubscriptionsToDelete.addAll(sqsResource.getSnsSubscriptions());
-            cloudwatchAlarmsToDelete.addAll(sqsResource.getCloudwatchAlarms());
+            queuesToDelete.add(sqsResource);
         }
 
         StringBuilder info = new StringBuilder()
                 .append("The resources will be terminated regarding ").append(ticket).append("\n")
                 .append("* Dry-Run: ").append(!apply).append("\n")
-                .append("* Lambda event-source mappings: ").append(lambdaTriggersToDelete).append("\n")
-                .append("* SNS subscriptions: ").append(snsSubscriptionsToDelete).append("\n")
-                .append("* Queues: ").append(queuesToDelete).append("\n")
-                .append("* Cloudwatch alarms: ").append(cloudwatchAlarmsToDelete).append("\n");
+                .append("* Queues: ").append(queuesToDelete).append("\n");
 
         info.append("Details:\n");
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
-        InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, sqsResourceList, info.toString(), apply));
+        return queuesToDelete;
+    }
 
-        if (apply) {
+    @Override
+    protected void apply(Set<SQSResource> resources, boolean apply) {
+        List<String> details = new ArrayList<>();
+        Set<String> queuesToDelete = new LinkedHashSet<>();
+        Set<String> lambdaTriggersToDelete = new LinkedHashSet<>();
+        Set<String> snsSubscriptionsToDelete = new LinkedHashSet<>();
+        Set<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
+
+        resources.forEach(resource -> {
+            queuesToDelete.add(resource.getResourceName());
+            lambdaTriggersToDelete.addAll(resource.getLambdaTriggers());
+            snsSubscriptionsToDelete.addAll(resource.getSnsSubscriptions());
+            cloudwatchAlarmsToDelete.addAll(resource.getCloudwatchAlarms());
+        });
+
+        details.add("Lambda event-source mappings: " + lambdaTriggersToDelete);
+        details.add("SNS subscriptions: " + snsSubscriptionsToDelete);
+        details.add("Cloudwatch alarms: " + cloudwatchAlarmsToDelete);
+
+        StringBuilder info = new StringBuilder();
+        details.forEach(d -> info.append("-- ").append(d).append("\n"));
+        LOGGER.info(info);
+
+        if (!resources.isEmpty() && apply) {
+            AmazonSQS sqsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSQS();
+            AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
+            AWSLambda lambdaClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonLambda();
+            AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+
             LOGGER.info("Terminating the resources...");
 
             lambdaTriggersToDelete.forEach(r -> lambdaClient.deleteEventSourceMapping(new DeleteEventSourceMappingRequest().withUUID(r)));
@@ -111,13 +121,12 @@ public class SQSResourceTerminator extends ResourceTerminatorWithProvider implem
 
             queuesToDelete.forEach(sqsClient::deleteQueue);
         }
-
-        InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, sqsResourceList, info.toString(), apply));
-
-        LOGGER.info("Succeed.");
     }
 
+    @Override
+    protected void afterApply(Set<SQSResource> resources) {
+        LOGGER.info("Succeed.");
+    }
 
     void setFetchResourceFactory(ResourceFetcherFactory<SQSResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;

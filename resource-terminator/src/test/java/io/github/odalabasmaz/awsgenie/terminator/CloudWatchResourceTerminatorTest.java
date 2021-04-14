@@ -13,7 +13,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -37,7 +39,7 @@ public class CloudWatchResourceTerminatorTest extends TerminatorTest {
         add("Alarm res3");
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new CloudWatchResource().setResourceName("Alarm res1"));
         add(new CloudWatchResource().setResourceName("Alarm res2"));
     }};
@@ -82,7 +84,7 @@ public class CloudWatchResourceTerminatorTest extends TerminatorTest {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         cloudwatchResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), eq(false));
     }
 }

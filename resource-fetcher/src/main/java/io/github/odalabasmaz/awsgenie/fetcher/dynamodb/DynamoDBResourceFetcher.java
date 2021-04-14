@@ -101,12 +101,12 @@ public class DynamoDBResourceFetcher extends ResourceFetcherWithProvider impleme
     }
 
     @Override
-    public List<DynamoDBResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<DynamoDBResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonDynamoDB dynamoDBClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
 
         AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
-        List<DynamoDBResource> dynamoDBResourceList = new ArrayList<>();
+        Set<DynamoDBResource> dynamoDBResourceList = new LinkedHashSet<>();
 
         // process each dynamodb tables
         for (String tableName : resources) {

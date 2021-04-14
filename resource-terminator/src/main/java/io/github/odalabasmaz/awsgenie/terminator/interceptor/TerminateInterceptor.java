@@ -3,7 +3,7 @@ package io.github.odalabasmaz.awsgenie.terminator.interceptor;
 import io.github.odalabasmaz.awsgenie.fetcher.Resource;
 import io.github.odalabasmaz.awsgenie.fetcher.Service;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * @author Celal Emre CICEK
@@ -11,5 +11,5 @@ import java.util.List;
  */
 
 public interface TerminateInterceptor {
-    void intercept(Service service, List<? extends Resource> resources, String info, boolean apply);
+    void intercept(Service service, Set<? extends Resource> resources, boolean apply);
 }

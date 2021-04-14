@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
@@ -43,7 +44,7 @@ public class LambdaResourceTerminatorTest extends TerminatorTest {
         add("lambda3");
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new LambdaResource()
                 .setResourceName("lambda1")
                 .setCloudwatchAlarms(new LinkedHashSet<String>() {{
@@ -130,7 +131,7 @@ public class LambdaResourceTerminatorTest extends TerminatorTest {
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         lambdaResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), eq(false));
     }
 }

@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -42,7 +43,7 @@ public class SNSResourceTerminatorTest extends TerminatorTest {
         add("topic3");
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new SNSResource()
                 .setResourceName(TOPIC_1)
                 .setCloudwatchAlarms(new LinkedHashSet<String>() {{
@@ -54,6 +55,7 @@ public class SNSResourceTerminatorTest extends TerminatorTest {
                     add("SNS Notification Failure-topic2");
                 }}));
     }};
+
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -104,10 +106,18 @@ public class SNSResourceTerminatorTest extends TerminatorTest {
 
     @Test
     public void interceptorsAreCalled() throws Exception {
+        Set<Resource> deletableResources = new LinkedHashSet<Resource>() {{
+            add(new SNSResource()
+                    .setResourceName(TOPIC_1)
+                    .setCloudwatchAlarms(new LinkedHashSet<String>() {{
+                        add("SNS Notification Failure-topic1");
+                    }}));
+        }};
+
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         snsResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), org.mockito.Mockito.any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
     }
 }

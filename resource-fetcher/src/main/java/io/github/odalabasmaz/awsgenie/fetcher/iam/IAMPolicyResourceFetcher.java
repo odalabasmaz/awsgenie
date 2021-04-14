@@ -11,10 +11,7 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -46,13 +43,13 @@ public class IAMPolicyResourceFetcher extends ResourceFetcherWithProvider implem
     }
 
     @Override
-    public List<IAMPolicyResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<IAMPolicyResource> fetchResources(String region, List<String> resources, List<String> details) {
 
         AmazonIdentityManagement iamClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonIAM();
         String accountId = AWSSecurityTokenServiceClientBuilder.standard().build()
                 .getCallerIdentity(new GetCallerIdentityRequest()).getAccount();
 
-        List<IAMPolicyResource> iamPolicyResourceList = new ArrayList<>();
+        Set<IAMPolicyResource> iamPolicyResourceList = new LinkedHashSet<>();
 
         for (String policyName : resources) {
             try {

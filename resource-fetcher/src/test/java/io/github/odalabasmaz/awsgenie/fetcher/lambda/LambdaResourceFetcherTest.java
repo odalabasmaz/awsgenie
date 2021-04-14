@@ -30,6 +30,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -185,10 +186,10 @@ public class LambdaResourceFetcherTest {
         resources.add("lambda2");
         List<String> details = new ArrayList<>();
 
-        List<LambdaResource> actualResources = lambdaResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<LambdaResource> actualResources = lambdaResourceFetcher.fetchResources(TEST_REGION, resources, details);
 
         assertThat(actualResources.size(), is(equalTo(1)));
-        LambdaResource lambdaResource = actualResources.get(0);
+        LambdaResource lambdaResource = actualResources.stream().findFirst().get();
         assertThat(lambdaResource.getCloudwatchAlarms().size(), is(equalTo(2)));
         assertThat(lambdaResource.getCloudwatchAlarms(), hasItem("alarm1"));
         assertThat(lambdaResource.getCloudwatchAlarms(), hasItem("alarm2"));

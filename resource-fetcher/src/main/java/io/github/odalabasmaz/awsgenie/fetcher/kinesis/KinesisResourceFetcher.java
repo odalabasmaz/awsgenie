@@ -98,7 +98,7 @@ public class KinesisResourceFetcher extends ResourceFetcherWithProvider implemen
     }
 
     @Override
-    public List<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<KinesisResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
         AWSLambda lambdaClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonLambda();
         AmazonKinesis kinesisClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
@@ -121,7 +121,7 @@ public class KinesisResourceFetcher extends ResourceFetcherWithProvider implemen
             marker = listEventSourceMappingsResult.getNextMarker();
         } while (marker != null);
 
-        List<KinesisResource> kinesisResourceList = new ArrayList<>();
+        Set<KinesisResource> kinesisResourceList = new LinkedHashSet<>();
 
         for (String stream : resources) {
             try {

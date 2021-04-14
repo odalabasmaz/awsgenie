@@ -7,7 +7,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -44,21 +44,21 @@ public class InterceptorRegistryTest {
 
     static class TestBeforeInterceptor implements BeforeTerminateInterceptor {
         @Override
-        public void intercept(Service service, List<? extends Resource> resources, String info, boolean apply) {
+        public void intercept(Service service, Set<? extends Resource> resources, boolean apply) {
 
         }
     }
 
     static class TestAfterInterceptor implements AfterTerminateInterceptor {
         @Override
-        public void intercept(Service service, List<? extends Resource> resources, String info, boolean apply) {
+        public void intercept(Service service, Set<? extends Resource> resources, boolean apply) {
 
         }
     }
 
     static class TestUnsupportedInterceptor implements TerminateInterceptor {
         @Override
-        public void intercept(Service service, List<? extends Resource> resources, String info, boolean apply) {
+        public void intercept(Service service, Set<? extends Resource> resources, boolean apply) {
 
         }
     }

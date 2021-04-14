@@ -11,20 +11,18 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import io.github.odalabasmaz.awsgenie.fetcher.kinesis.KinesisResource;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
-import io.github.odalabasmaz.awsgenie.terminator.interceptor.InterceptorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Celal Emre CICEK
  * @version 7.04.2021
  */
 
-public class KinesisResourceTerminator extends ResourceTerminatorWithProvider implements ResourceTerminator<KinesisResource> {
+public class KinesisResourceTerminator extends ResourceTerminator<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(KinesisResourceTerminator.class);
 
     private ResourceFetcherFactory<KinesisResource> resourceFetcherFactory;
@@ -34,30 +32,25 @@ public class KinesisResourceTerminator extends ResourceTerminatorWithProvider im
     }
 
     @Override
-    public void terminateResource(Configuration conf, boolean apply) throws Exception {
-        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+    public Set<KinesisResource> beforeApply(Configuration conf, boolean apply) throws Exception {
+        return beforeApply(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
                 conf.getLastUsage(), conf.isForce(), apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        terminateResource(region, service, resources, ticket, 7, false, apply);
+    protected Set<KinesisResource> beforeApply(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        return beforeApply(region, service, resources, ticket, 7, false, apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
-        AmazonKinesis kinesisClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
-
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
-
+    protected Set<KinesisResource> beforeApply(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         // Resources to be removed
-        LinkedHashSet<String> streamsToDelete = new LinkedHashSet<>();
-        LinkedHashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
+        Set<KinesisResource> streamsToDelete = new LinkedHashSet<>();
+        Set<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<KinesisResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
+        Set<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
             String streamName = kinesisResource.getResourceName();
@@ -73,7 +66,7 @@ public class KinesisResourceTerminator extends ResourceTerminatorWithProvider im
                 }
             }
 
-            streamsToDelete.add(streamName);
+            streamsToDelete.add(kinesisResource);
             cloudwatchAlarmsToDelete.addAll(kinesisResource.getCloudwatchAlarmList());
         }
 
@@ -87,10 +80,25 @@ public class KinesisResourceTerminator extends ResourceTerminatorWithProvider im
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
-        InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, kinesisResourceList, info.toString(), apply));
+        return streamsToDelete;
+    }
 
-        if (apply) {
+    @Override
+    protected void apply(Set<KinesisResource> resources, boolean apply) {
+        if (!resources.isEmpty() && apply) {
+            AmazonKinesis kinesisClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonKinesis();
+            AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+            HashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
+
+            Set<String> streamsToDelete = resources
+                    .stream()
+                    .map(KinesisResource::getResourceName)
+                    .collect(Collectors.toSet());
+            resources
+                    .stream()
+                    .map(KinesisResource::getCloudwatchAlarmList)
+                    .forEach(cloudwatchAlarmsToDelete::addAll);
+
             LOGGER.info("Terminating the resources...");
 
             streamsToDelete.forEach(kinesisClient::deleteStream);
@@ -99,10 +107,10 @@ public class KinesisResourceTerminator extends ResourceTerminatorWithProvider im
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
+    }
 
-        InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, kinesisResourceList, info.toString(), apply));
-
+    @Override
+    protected void afterApply(Set<KinesisResource> resources) {
         LOGGER.info("Succeed.");
     }
 

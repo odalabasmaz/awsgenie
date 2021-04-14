@@ -16,7 +16,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -43,12 +45,13 @@ public class IAMPolicyResourceTerminatorTest extends TerminatorTest {
         add("policy3");
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new IAMPolicyResource()
                 .setResourceName(POLICY_1));
         add(new IAMPolicyResource()
                 .setResourceName(POLICY_2));
     }};
+
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -72,8 +75,6 @@ public class IAMPolicyResourceTerminatorTest extends TerminatorTest {
                 .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(POLICY_2), eq(7));
         doReturn(new GetCallerIdentityResult().withAccount("account1"))
                 .when(getAmazonSts()).getCallerIdentity(any(GetCallerIdentityRequest.class));
-
-
     }
 
     @Test
@@ -94,10 +95,15 @@ public class IAMPolicyResourceTerminatorTest extends TerminatorTest {
 
     @Test
     public void interceptorsAreCalled() throws Exception {
+        Set<Resource> deletableResources = new LinkedHashSet<Resource>() {{
+            add(new IAMPolicyResource()
+                    .setResourceName(POLICY_1));
+        }};
+
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         iamPolicyResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
     }
 }

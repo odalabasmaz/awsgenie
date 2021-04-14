@@ -36,7 +36,7 @@ public class SQSResourceFetcher extends ResourceFetcherWithProvider implements R
     }
 
     @Override
-    public List<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<SQSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSQS sqsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSQS();
         AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
         AWSLambda lambdaClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonLambda();
@@ -77,7 +77,7 @@ public class SQSResourceFetcher extends ResourceFetcherWithProvider implements R
             }
         } while (nextToken != null);
 
-        List<SQSResource> sqsResourceList = new ArrayList<>();
+        Set<SQSResource> sqsResourceList = new LinkedHashSet<>();
         // process each queue
         for (String queueName : resources) {
             try {

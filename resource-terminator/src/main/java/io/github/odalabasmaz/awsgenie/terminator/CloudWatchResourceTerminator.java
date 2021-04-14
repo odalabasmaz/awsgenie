@@ -10,20 +10,20 @@ import io.github.odalabasmaz.awsgenie.fetcher.cloudwatch.CloudWatchResource;
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration;
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
-import io.github.odalabasmaz.awsgenie.terminator.interceptor.InterceptorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Orhun Dalabasmaz
  * @version 10.03.2021
  */
 
-public class CloudWatchResourceTerminator extends ResourceTerminatorWithProvider implements ResourceTerminator<CloudWatchResource> {
+public class CloudWatchResourceTerminator extends ResourceTerminator<CloudWatchResource> {
     private static final Logger LOGGER = LogManager.getLogger(CloudWatchResourceTerminator.class);
 
     private ResourceFetcherFactory<CloudWatchResource> resourceFetcherFactory;
@@ -33,22 +33,20 @@ public class CloudWatchResourceTerminator extends ResourceTerminatorWithProvider
     }
 
     @Override
-    public void terminateResource(Configuration conf, boolean apply) throws Exception {
-        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+    public Set<CloudWatchResource> beforeApply(Configuration conf, boolean apply) throws Exception {
+        return beforeApply(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
                 conf.getLastUsage(), conf.isForce(), apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        terminateResource(region, service, resources, ticket, 7, false, apply);
+    protected Set<CloudWatchResource> beforeApply(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        return beforeApply(region, service, resources, ticket, 7, false, apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
-
+    protected Set<CloudWatchResource> beforeApply(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         ResourceFetcher<CloudWatchResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<CloudWatchResource> cloudWatchResourceList = fetcher.fetchResources(region, resources, null);
+        Set<CloudWatchResource> cloudWatchResourceList = fetcher.fetchResources(region, resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);
@@ -65,19 +63,25 @@ public class CloudWatchResourceTerminator extends ResourceTerminatorWithProvider
                 .append("* Cloudwatch alarms not found: ").append(cloudwatchAlarmsNotToDelete).append("\n");
         LOGGER.info(info);
 
-        InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, cloudWatchResourceList, info.toString(), apply));
+        return cloudWatchResourceList;
+    }
 
-        if (apply) {
+    @Override
+    protected void apply(Set<CloudWatchResource> resources, boolean apply) {
+        if (!resources.isEmpty() && apply) {
+            AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
             LOGGER.info("Terminating the resources...");
-            if (!cloudwatchAlarmsToDelete.isEmpty()) {
-                cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
-            }
+
+            List<String> resourcesToDelete = resources
+                    .stream()
+                    .map(CloudWatchResource::getResourceName)
+                    .collect(Collectors.toList());
+            cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(resourcesToDelete));
         }
+    }
 
-        InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, cloudWatchResourceList, info.toString(), apply));
-
+    @Override
+    protected void afterApply(Set<CloudWatchResource> resources) {
         LOGGER.info("Succeed.");
     }
 

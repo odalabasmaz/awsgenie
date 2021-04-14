@@ -20,10 +20,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -132,7 +129,7 @@ public class KinesisResourceFetcherTest {
         resources.add("stream2");
         resources.add("stream3");
         List<String> details = new ArrayList<>();
-        List<KinesisResource> actualResources = kinesisResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<KinesisResource> actualResources = kinesisResourceFetcher.fetchResources(TEST_REGION, resources, details);
 
         verify(kinesisClient).describeStream("stream1");
         verify(kinesisClient).describeStream("stream2");
