@@ -93,7 +93,7 @@ public class IAMPolicyResourceFetcherTest {
                         ));
 
         List<String> actualPolicies = new ArrayList<>();
-        IAMPolicyResourceFetcher.listResources(TEST_REGION, actualPolicies::addAll);
+        IAMPolicyResourceFetcher.listResources(actualPolicies::addAll);
 
         verify(iamClient, times(2)).listPolicies(org.mockito.Mockito.any(ListPoliciesRequest.class));
         assertThat(actualPolicies.size(), is(equalTo(4)));
@@ -116,7 +116,7 @@ public class IAMPolicyResourceFetcherTest {
         resources.add("policy2");
         resources.add("policy3");
         List<String> details = new ArrayList<>();
-        List<IAMPolicyResource> actualResources = IAMPolicyResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<IAMPolicyResource> actualResources = IAMPolicyResourceFetcher.fetchResources(resources, details);
 
         verify(iamClient, times(3)).getPolicy(org.mockito.Mockito.any(GetPolicyRequest.class));
 

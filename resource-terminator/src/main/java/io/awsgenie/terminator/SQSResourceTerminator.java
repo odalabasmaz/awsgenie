@@ -63,7 +63,7 @@ public class SQSResourceTerminator extends ResourceTerminatorWithProvider implem
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<SQSResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<SQSResource> sqsResourceList = fetcher.fetchResources(region, resources, details);
+        List<SQSResource> sqsResourceList = fetcher.fetchResources( resources, details);
         for (SQSResource sqsResource : sqsResourceList) {
             String queueName = sqsResource.getResourceName();
             Double totalUsage = (Double) fetcher.getUsage(region, queueName, lastUsage);

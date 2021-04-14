@@ -16,11 +16,6 @@ public class DynamoDBResource extends Resource {
         return resourceName;
     }
 
-    @Override
-    public Object getResourceObject() {
-        return null;
-    }
-
     public DynamoDBResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;

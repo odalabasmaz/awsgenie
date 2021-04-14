@@ -1,18 +1,15 @@
-package com.atlassian.awstool.terminate.sns;
+package io.awsgenie.fetcher.sns;
 
 import com.amazonaws.arn.Arn;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.ResourceNotFoundException;
 import com.amazonaws.services.cloudwatch.model.*;
 import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.ResourceNotFoundException;
 import com.amazonaws.services.sns.model.*;
-import com.atlassian.awstool.terminate.FetchResources;
-import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
-import com.atlassian.awstool.terminate.FetcherConfiguration;
-import credentials.AwsClientProvider;
+import io.awsgenie.fetcher.ResourceFetcher;
+import io.awsgenie.fetcher.ResourceFetcherConfiguration;
+import io.awsgenie.fetcher.ResourceFetcherWithProvider;
+import io.awsgenie.fetcher.credentials.AWSClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,20 +23,20 @@ import java.util.stream.Collectors;
  * @version 10.03.2021
  */
 
-public class FetchSNSResources extends FetchResourcesWithProvider implements FetchResources<SNSResource> {
-    private static final Logger LOGGER = LogManager.getLogger(FetchSNSResources.class);
+public class SNSResourceFetcher extends ResourceFetcherWithProvider implements ResourceFetcher<SNSResource> {
+    private static final Logger LOGGER = LogManager.getLogger(SNSResourceFetcher.class);
 
-    public FetchSNSResources(FetcherConfiguration configuration) {
+    public SNSResourceFetcher(ResourceFetcherConfiguration configuration) {
         super(configuration);
     }
 
     @Override
-    public Object getUsage(String region, String resource) {
-        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+    public Object getUsage(String region, String resource, int lastDays) {
+        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastDays));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(lastDays)).intValue();
 
         String topicName = getResourceFromArn(resource);
 
@@ -78,36 +75,34 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
     }
 
     @Override
-    public List<SNSResource> fetchResources(List<String> resources, List<String> details) {
-        AmazonSNS snsClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS();
-        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+    public List<SNSResource> fetchResources( List<String> resources, List<String> details) {
+        AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
+        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         List<SNSResource> snsResourceList = new ArrayList<>();
-        List<Topic> topics = new LinkedList<>();
+        Map<String, String> topics = new LinkedHashMap<>();
         String nextToken = null;
 
         do {
             ListTopicsResult listTopicsResult = snsClient.listTopics(new ListTopicsRequest().withNextToken(nextToken));
-            topics.addAll(listTopicsResult.getTopics()
+            listTopicsResult.getTopics()
                     .stream()
-                    .filter(topic -> resources.contains(getResourceFromArn(topic.getTopicArn())))
-                    .collect(Collectors.toList()));
+                    .map(Topic::getTopicArn)
+                    .filter(topicArn -> resources.contains(getResourceFromArn(topicArn)))
+                    .forEach(topicArn -> topics.put(getResourceFromArn(topicArn), topicArn));
             nextToken = listTopicsResult.getNextToken();
         } while (nextToken != null);
 
-        for (Topic topic : topics) {
+        for (String topicName : resources) {
+            String topicArn = topics.get(topicName);
             LinkedHashSet<String> cloudwatchAlarms = new LinkedHashSet<>();
 
-            String topicName = getResourceFromArn(topic.getTopicArn());
-
             try {
-
-
                 List<String> subscriptions = new LinkedList<>();
 
                 do {
                     ListSubscriptionsByTopicResult listSubscriptionsByTopicResult = snsClient
-                            .listSubscriptionsByTopic(new ListSubscriptionsByTopicRequest(topic.getTopicArn(), nextToken));
+                            .listSubscriptionsByTopic(new ListSubscriptionsByTopicRequest(topicArn, nextToken));
                     List<String> subscriptionsPart = listSubscriptionsByTopicResult.getSubscriptions()
                             .stream()
                             .map(Subscription::getSubscriptionArn)
@@ -121,9 +116,9 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                snsResourceList.add(new SNSResource().setResourceName(topic.getTopicArn()).setCloudwatchAlarms(cloudwatchAlarms));
+                snsResourceList.add(new SNSResource().setResourceName(topicArn).setCloudwatchAlarms(cloudwatchAlarms));
 
-                details.add(String.format("Resources info for: [%s], subscriptions: [%s], cw alarms: %s",
+                details.add(String.format("Resources info for: [%s], subscriptions: %s, cw alarms: %s",
                         topicName, subscriptions, cloudwatchAlarms));
             } catch (ResourceNotFoundException ex) {
                 details.add("!!! Topic not exists: " + topicName);
@@ -133,17 +128,11 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
         return snsResourceList;
     }
 
-    private String getResourceFromArn(String arn) {
-        return Arn.fromString(arn).getResource().getResource();
-    }
-
     @Override
-    public void listResources(Consumer<List<String>> consumer) {
-
-        List<String> snsResourceNameList = new ArrayList<>();
-
+    public void listResources( Consumer<List<String>> consumer) {
         consume((String nextMarker) -> {
-            ListTopicsResult listTopicsResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonSNS().listTopics(new ListTopicsRequest().withNextToken(nextMarker));
+            List<String> snsResourceNameList = new ArrayList<>();
+            ListTopicsResult listTopicsResult = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS().listTopics(new ListTopicsRequest().withNextToken(nextMarker));
             for (Topic topic : listTopicsResult.getTopics()) {
                 snsResourceNameList.add(getResourceFromArn(topic.getTopicArn()));
             }
@@ -151,5 +140,9 @@ public class FetchSNSResources extends FetchResourcesWithProvider implements Fet
             consumer.accept(snsResourceNameList);
             return listTopicsResult.getNextToken();
         });
+    }
+
+    private String getResourceFromArn(String arn) {
+        return Arn.fromString(arn).getResource().getResource();
     }
 }

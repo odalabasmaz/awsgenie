@@ -98,7 +98,7 @@ public class SQSResourceFetcherTest {
     @Test
     public void listResources() {
         List<String> actualQueues = new ArrayList<>();
-        SQSResourceFetcher.listResources(TEST_REGION, actualQueues::addAll);
+        SQSResourceFetcher.listResources(actualQueues::addAll);
 
         verify(sqsClient, times(2)).listQueues(org.mockito.Mockito.any(ListQueuesRequest.class));
         assertThat(actualQueues.size(), is(equalTo(4)));
@@ -162,7 +162,7 @@ public class SQSResourceFetcherTest {
         resources.add("queue3");
         List<String> details = new ArrayList<>();
 
-        List<SQSResource> actualResources = SQSResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<SQSResource> actualResources = SQSResourceFetcher.fetchResources(resources, details);
 
         assertThat(actualResources.size(), is(equalTo(2)));
         assertThat(actualResources, hasItem(new SQSResource()

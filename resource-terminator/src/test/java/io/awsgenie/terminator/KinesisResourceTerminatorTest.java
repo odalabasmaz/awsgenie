@@ -84,7 +84,7 @@ public class KinesisResourceTerminatorTest extends TerminatorTest {
         this.kinesisResourceTerminator.setFetchResourceFactory(getFetchResourceFactory());
         ResourceFetcher resourceFetcher = getFetchResources();
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(resourceFetcher).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
+                .when(resourceFetcher).fetchResources( eq(TEST_RESOURCES), org.mockito.Mockito.any(List.class));
         doReturn(0.0)
                 .when(resourceFetcher).getUsage(eq(TEST_REGION), eq(STREAM_1), eq(7));
         doReturn(0.0)

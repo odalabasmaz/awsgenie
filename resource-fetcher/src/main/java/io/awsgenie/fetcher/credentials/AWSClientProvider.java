@@ -99,7 +99,7 @@ public class AWSClientProvider {
 
     public AWSSecurityTokenService getAmazonSts() {
         if (amazonSts == null) {
-            amazonSts = AWSSecurityTokenServiceClientBuilder.standard().build();
+            amazonSts = AWSSecurityTokenServiceClientBuilder.standard().withRegion(region).withCredentials(this.awsCredentialsProvider).build();
         }
         return amazonSts;
     }

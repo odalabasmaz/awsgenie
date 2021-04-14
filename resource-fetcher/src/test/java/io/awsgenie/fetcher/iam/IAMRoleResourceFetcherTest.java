@@ -93,7 +93,7 @@ public class IAMRoleResourceFetcherTest {
                         ));
 
         List<String> actualRoles = new ArrayList<>();
-        IAMRoleResourceFetcher.listResources(TEST_REGION, actualRoles::addAll);
+        IAMRoleResourceFetcher.listResources( actualRoles::addAll);
 
         verify(iamClient, times(2)).listRoles(org.mockito.Mockito.any(ListRolesRequest.class));
         assertThat(actualRoles.size(), is(equalTo(4)));
@@ -139,7 +139,7 @@ public class IAMRoleResourceFetcherTest {
         resources.add("role2");
         resources.add("role3");
         List<String> details = new ArrayList<>();
-        List<IAMRoleResource> actualResources = IAMRoleResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<IAMRoleResource> actualResources = IAMRoleResourceFetcher.fetchResources( resources, details);
 
         verify(iamClient, times(3)).getRole(org.mockito.Mockito.any(GetRoleRequest.class));
         verify(iamClient, times(2)).listRolePolicies(org.mockito.Mockito.any(ListRolePoliciesRequest.class));

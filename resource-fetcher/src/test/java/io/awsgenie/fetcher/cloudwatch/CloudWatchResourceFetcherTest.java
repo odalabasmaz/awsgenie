@@ -76,7 +76,7 @@ public class CloudWatchResourceFetcherTest {
     @Test
     public void listResources() {
         List<String> actualAlarms = new ArrayList<>();
-        cloudwatchResourceFetcher.listResources(TEST_REGION, actualAlarms::addAll);
+        cloudwatchResourceFetcher.listResources( actualAlarms::addAll);
 
         verify(cloudWatchClient, times(2)).describeAlarms(org.mockito.Mockito.any(DescribeAlarmsRequest.class));
         assertThat(actualAlarms.size(), is(equalTo(4)));
@@ -88,7 +88,7 @@ public class CloudWatchResourceFetcherTest {
 
     @Test
     public void fetchResources() {
-        List<CloudWatchResource> actualAlarms = cloudwatchResourceFetcher.fetchResources(TEST_REGION, null, null);
+        List<CloudWatchResource> actualAlarms = cloudwatchResourceFetcher.fetchResources(null, null);
 
         verify(cloudWatchClient, times(2)).describeAlarms(org.mockito.Mockito.any(DescribeAlarmsRequest.class));
         assertThat(actualAlarms.size(), is(equalTo(4)));

@@ -48,7 +48,7 @@ public class CloudWatchResourceTerminator extends ResourceTerminatorWithProvider
         AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         ResourceFetcher<CloudWatchResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<CloudWatchResource> cloudWatchResourceList = fetcher.fetchResources(region, resources, null);
+        List<CloudWatchResource> cloudWatchResourceList = fetcher.fetchResources(resources, null);
 
         Set<String> cloudwatchAlarmsToDelete = new HashSet<>();
         Set<String> cloudwatchAlarmsNotToDelete = new HashSet<>(resources);

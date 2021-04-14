@@ -87,7 +87,7 @@ public class SQSResourceTerminatorTest extends TerminatorTest {
         sqsResourceTerminator = new SQSResourceTerminator(TerminatorHelper.getRegion1Account1Configuration());
         sqsResourceTerminator.setFetchResourceFactory(getFetchResourceFactory());
         doReturn(TEST_FETCHED_RESOURCES)
-                .when(getFetchResources()).fetchResources(eq(TEST_REGION), eq(TEST_RESOURCES), any(List.class));
+                .when(getFetchResources()).fetchResources( eq(TEST_RESOURCES), any(List.class));
         doReturn(0.0)
                 .when(getFetchResources()).getUsage(eq(TEST_REGION), eq(QUEUE_1), eq(7));
         doReturn(1.0)

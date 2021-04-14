@@ -92,7 +92,7 @@ public class KinesisResourceFetcherTest {
                         .withStreamNames("stream3", "stream4")
                         .withHasMoreStreams(false));
 
-        kinesisResourceFetcher.listResources(TEST_REGION, actualStreams::addAll);
+        kinesisResourceFetcher.listResources(actualStreams::addAll);
 
         verify(kinesisClient, times(2)).listStreams(org.mockito.Mockito.any(ListStreamsRequest.class));
         assertThat(actualStreams.size(), is(equalTo(4)));
@@ -132,7 +132,7 @@ public class KinesisResourceFetcherTest {
         resources.add("stream2");
         resources.add("stream3");
         List<String> details = new ArrayList<>();
-        List<KinesisResource> actualResources = kinesisResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<KinesisResource> actualResources = kinesisResourceFetcher.fetchResources(resources, details);
 
         verify(kinesisClient).describeStream("stream1");
         verify(kinesisClient).describeStream("stream2");

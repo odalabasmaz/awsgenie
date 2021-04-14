@@ -61,7 +61,7 @@ public class IAMPolicyResourceTerminator extends ResourceTerminatorWithProvider 
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage));
 
         ResourceFetcher<IAMPolicyResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources(region, resources, details);
+        List<IAMPolicyResource> iamPolicyResourceList = fetcher.fetchResources( resources, details);
 
         for (IAMPolicyResource iamPolicyResource : iamPolicyResourceList) {
             String policyName = iamPolicyResource.getResourceName();

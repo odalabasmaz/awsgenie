@@ -68,7 +68,7 @@ public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider im
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage)); //TODO: make this configurable...
 
         ResourceFetcher<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
+        List<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
             String roleName = iamRoleResource.getResourceName();

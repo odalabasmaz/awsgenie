@@ -79,7 +79,7 @@ public class DynamoDBResourceFetcherTest {
 
 
         List<String> actualTables = new ArrayList<>();
-        dynamodbResourceFetcher.listResources(TEST_REGION, actualTables::addAll);
+        dynamodbResourceFetcher.listResources( actualTables::addAll);
 
         verify(dynamoDBClient, times(2)).listTables(org.mockito.Mockito.any(ListTablesRequest.class));
         assertThat(actualTables.size(), is(equalTo(4)));
@@ -104,7 +104,7 @@ public class DynamoDBResourceFetcherTest {
         tables.add("table1");
         tables.add("table2");
 
-        List<DynamoDBResource> actualDynamoDBResources = dynamodbResourceFetcher.fetchResources(TEST_REGION, tables, details);
+        List<DynamoDBResource> actualDynamoDBResources = dynamodbResourceFetcher.fetchResources( tables, details);
 
         verify(dynamoDBClient).describeTable("table1");
         verify(dynamoDBClient).describeTable("table2");

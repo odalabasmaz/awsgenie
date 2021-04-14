@@ -18,11 +18,6 @@ public class IAMRoleResource extends Resource {
         return resourceName;
     }
 
-    @Override
-    public Object getResourceObject() {
-        return null;
-    }
-
     public IAMRoleResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;

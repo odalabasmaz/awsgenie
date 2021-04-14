@@ -58,7 +58,7 @@ public class SNSResourceTerminator extends ResourceTerminatorWithProvider implem
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<SNSResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
+        List<SNSResource> snsResourceList = fetcher.fetchResources( resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
             String topicName = snsResource.getResourceName();

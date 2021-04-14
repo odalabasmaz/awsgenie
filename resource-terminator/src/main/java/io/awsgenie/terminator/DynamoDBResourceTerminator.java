@@ -58,7 +58,7 @@ public class DynamoDBResourceTerminator extends ResourceTerminatorWithProvider i
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<DynamoDBResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<DynamoDBResource> dynamoDBResourceList = fetcher.fetchResources(region, resources, details);
+        List<DynamoDBResource> dynamoDBResourceList = fetcher.fetchResources( resources, details);
 
         for (DynamoDBResource dynamodbResource : dynamoDBResourceList) {
             String tableName = dynamodbResource.getResourceName();

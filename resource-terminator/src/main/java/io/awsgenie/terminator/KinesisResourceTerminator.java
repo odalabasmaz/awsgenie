@@ -57,7 +57,7 @@ public class KinesisResourceTerminator extends ResourceTerminatorWithProvider im
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<KinesisResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(region, resources, details);
+        List<KinesisResource> kinesisResourceList = fetcher.fetchResources(resources, details);
 
         for (KinesisResource kinesisResource : kinesisResourceList) {
             String streamName = kinesisResource.getResourceName();

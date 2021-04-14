@@ -15,11 +15,6 @@ public class SNSResource extends Resource {
         return resourceName;
     }
 
-    @Override
-    public Object getResourceObject() {
-        return null;
-    }
-
     public SNSResource setResourceName(String resourceName) {
         this.resourceName = resourceName;
         return this;

@@ -105,7 +105,7 @@ public class LambdaResourceFetcherTest {
                                 new FunctionConfiguration().withFunctionName("lambda3"),
                                 new FunctionConfiguration().withFunctionName("lambda4")));
 
-        lambdaResourceFetcher.listResources(TEST_REGION, actualLambdas::addAll);
+        lambdaResourceFetcher.listResources( actualLambdas::addAll);
 
         verify(lambdaClient, times(2)).listFunctions(org.mockito.Mockito.any(ListFunctionsRequest.class));
         assertThat(actualLambdas.size(), is(equalTo(4)));
@@ -185,7 +185,7 @@ public class LambdaResourceFetcherTest {
         resources.add("lambda2");
         List<String> details = new ArrayList<>();
 
-        List<LambdaResource> actualResources = lambdaResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<LambdaResource> actualResources = lambdaResourceFetcher.fetchResources( resources, details);
 
         assertThat(actualResources.size(), is(equalTo(1)));
         LambdaResource lambdaResource = actualResources.get(0);

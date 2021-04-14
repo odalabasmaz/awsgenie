@@ -72,7 +72,7 @@ public class LambdaResourceTerminator extends ResourceTerminatorWithProvider imp
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<LambdaResource> resourceFetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<LambdaResource> lambdaResourceList = resourceFetcher.fetchResources(region, resources, details);
+        List<LambdaResource> lambdaResourceList = resourceFetcher.fetchResources( resources, details);
 
         for (LambdaResource lambdaResource : lambdaResourceList) {
             lambdasToDelete.add(lambdaResource.getResourceName());

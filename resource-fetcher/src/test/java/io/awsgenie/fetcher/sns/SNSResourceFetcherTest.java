@@ -87,7 +87,7 @@ public class SNSResourceFetcherTest {
     public void listResources() {
         List<String> actualTopics = new ArrayList<>();
 
-        SNSResourceFetcher.listResources(TEST_REGION, actualTopics::addAll);
+        SNSResourceFetcher.listResources(actualTopics::addAll);
 
         verify(snsClient, times(2)).listTopics(org.mockito.Mockito.any(ListTopicsRequest.class));
         assertThat(actualTopics.size(), is(equalTo(4)));
@@ -131,7 +131,7 @@ public class SNSResourceFetcherTest {
         resources.add("topic3");
         List<String> details = new ArrayList<>();
 
-        List<SNSResource> actualResources = SNSResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        List<SNSResource> actualResources = SNSResourceFetcher.fetchResources( resources, details);
         assertThat(actualResources.size(), is(equalTo(2)));
         assertThat(actualResources, hasItem(new SNSResource()
                 .setResourceName(topicArn1)

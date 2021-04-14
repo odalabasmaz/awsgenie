@@ -1,17 +1,16 @@
-package com.atlassian.awstool.terminate.dynamodb;
+package io.awsgenie.fetcher.dynamodb;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.*;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.model.ListTablesRequest;
 import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.atlassian.awstool.terminate.FetchResources;
-import com.atlassian.awstool.terminate.FetchResourcesWithProvider;
-import com.atlassian.awstool.terminate.FetcherConfiguration;
-import credentials.AwsClientProvider;
+import io.awsgenie.fetcher.ResourceFetcher;
+import io.awsgenie.fetcher.ResourceFetcherConfiguration;
+import io.awsgenie.fetcher.ResourceFetcherWithProvider;
+import io.awsgenie.fetcher.credentials.AWSClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,20 +23,20 @@ import java.util.function.Consumer;
  * @version 10.03.2021
  */
 
-public class FetchDynamodbResources extends FetchResourcesWithProvider implements FetchResources<DynamodbResource> {
-    private static final Logger LOGGER = LogManager.getLogger(FetchDynamodbResources.class);
+public class DynamoDBResourceFetcher extends ResourceFetcherWithProvider implements ResourceFetcher<DynamoDBResource> {
+    private static final Logger LOGGER = LogManager.getLogger(DynamoDBResourceFetcher.class);
 
-    public FetchDynamodbResources(FetcherConfiguration configuration) {
+    public DynamoDBResourceFetcher(ResourceFetcherConfiguration configuration) {
         super(configuration);
     }
 
     @Override
-    public Object getUsage(String region, String resource) {
-        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+    public Object getUsage(String region, String resource, int lastDays) {
+        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         Date endDate = new Date();
-        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(7));
-        Integer period = ((Long) TimeUnit.DAYS.toSeconds(7)).intValue();
+        Date startDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastDays));
+        Integer period = ((Long) TimeUnit.DAYS.toSeconds(lastDays)).intValue();
 
         // check RW usages for last week
         GetMetricDataResult result = cloudWatchClient.getMetricData(new GetMetricDataRequest()
@@ -95,19 +94,19 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
     @Override
     public void listResources(Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
-            ListTablesResult listTablesResult = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB().listTables(new ListTablesRequest().withExclusiveStartTableName(nextMarker));
+            ListTablesResult listTablesResult = AWSClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB().listTables(new ListTablesRequest().withExclusiveStartTableName(nextMarker));
             consumer.accept(listTablesResult.getTableNames());
             return listTablesResult.getLastEvaluatedTableName();
         });
     }
 
     @Override
-    public List<DynamodbResource> fetchResources(List<String> resources, List<String> details) {
-        AmazonDynamoDB dynamoDBClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
+    public List<DynamoDBResource> fetchResources(List<String> resources, List<String> details) {
+        AmazonDynamoDB dynamoDBClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonDynamoDB();
 
-        AmazonCloudWatch cloudWatchClient = AwsClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
-        List<DynamodbResource> dynamodbResourceList = new ArrayList<>();
+        List<DynamoDBResource> dynamoDBResourceList = new ArrayList<>();
 
         // process each dynamodb tables
         for (String tableName : resources) {
@@ -123,9 +122,9 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
                         .getMetricAlarms().stream().map(MetricAlarm::getAlarmName)
                         .forEach(cloudwatchAlarms::add);
 
-                DynamodbResource dynamodbResource = new DynamodbResource().setResourceName(tableName);
+                DynamoDBResource dynamodbResource = new DynamoDBResource().setResourceName(tableName);
                 dynamodbResource.getCloudwatchAlarmList().addAll(cloudwatchAlarms);
-                dynamodbResourceList.add(dynamodbResource);
+                dynamoDBResourceList.add(dynamodbResource);
 
                 details.add(String.format("Resources info for: [%s], [%s] items on table, cw alarms: %s",
                         tableName, itemCount, cloudwatchAlarms));
@@ -135,6 +134,6 @@ public class FetchDynamodbResources extends FetchResourcesWithProvider implement
                 LOGGER.warn("DynamoDB table not exists: " + tableName);
             }
         }
-        return dynamodbResourceList;
+        return dynamoDBResourceList;
     }
 }

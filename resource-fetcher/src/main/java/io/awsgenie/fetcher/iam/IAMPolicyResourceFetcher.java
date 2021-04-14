@@ -71,7 +71,7 @@ public class IAMPolicyResourceFetcher extends ResourceFetcherWithProvider implem
     }
 
     @Override
-    public void listResources( Consumer<List<String>> consumer) {
+    public void listResources(Consumer<List<String>> consumer) {
         consume((nextMarker) -> {
             ListPoliciesResult listPoliciesResult = AWSClientProvider.getInstance(getConfiguration()).getAmazonIAM().listPolicies(new ListPoliciesRequest().withMarker(nextMarker));
             List<String> policyList = listPoliciesResult.getPolicies().stream().map(Policy::getPolicyName).collect(Collectors.toList());
