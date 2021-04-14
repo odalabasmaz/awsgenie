@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.atlassian.awsgenie</groupId>
+        <groupId>io.awsgenie</groupId>
         <artifactId>awsgenie</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -70,7 +70,7 @@
             <artifactId>jcommander</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.atlassian.awsgenie</groupId>
+            <groupId>io.awsgenie</groupId>
             <artifactId>resource-fetcher</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
@@ -113,7 +113,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.atlassian.awsgenie.terminator.AWSGenieResourceTerminator</mainClass>
+                            <mainClass>io.awsgenie.terminator.AWSGenieResourceTerminator</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
