@@ -169,7 +169,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.atlassian.awsterminator.ResourceTerminator</mainClass>
+                            <mainClass>com.atlassian.awsgenie.terminator.AWSGenieResourceTerminator</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
