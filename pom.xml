@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
-    <groupId>com.atlassian.awstool</groupId>
-    <artifactId>awstool</artifactId>
+    <groupId>com.atlassian.awsgenie</groupId>
+    <artifactId>awsgenie</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -23,8 +23,8 @@
     </properties>
 
     <modules>
-        <module>aws-resource-fetcher</module>
-        <module>aws-resource-terminator</module>
+        <module>resource-fetcher</module>
+        <module>resource-terminator</module>
     </modules>
 
     <dependencyManagement>
@@ -155,53 +155,6 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.1.1</version>
-
-                <configuration>
-                    <finalName>aws-resource-terminator-fat-${project.version}</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>com.atlassian.awsterminator.ResourceTerminator</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeScope>runtime</includeScope>
-                            <prependGroupId>true</prependGroupId>
-                            <skip>${skipDeployment}</skip>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
