@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
 public class SNSResourceTerminator extends ResourceTerminator<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(SNSResourceTerminator.class);
 
-    private ResourceFetcherFactory<SNSResource> resourceFetcherFactory;
-
     public SNSResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -120,13 +118,5 @@ public class SNSResourceTerminator extends ResourceTerminator<SNSResource> {
 
     void setFetchResourceFactory(ResourceFetcherFactory<SNSResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<SNSResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

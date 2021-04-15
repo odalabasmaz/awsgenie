@@ -27,8 +27,6 @@ import java.util.*;
 public class SQSResourceTerminator extends ResourceTerminator<SQSResource> {
     private static final Logger LOGGER = LogManager.getLogger(SQSResourceTerminator.class);
 
-    private ResourceFetcherFactory<SQSResource> resourceFetcherFactory;
-
     public SQSResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -130,14 +128,5 @@ public class SQSResourceTerminator extends ResourceTerminator<SQSResource> {
 
     void setFetchResourceFactory(ResourceFetcherFactory<SQSResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    //TODO: send to abstract class for all...
-    private ResourceFetcherFactory<SQSResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

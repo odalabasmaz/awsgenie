@@ -31,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 public class IAMRoleResourceTerminator extends ResourceTerminator<IAMRoleResource> {
     private static final Logger LOGGER = LogManager.getLogger(IAMRoleResourceTerminator.class);
 
-    private ResourceFetcherFactory<IAMRoleResource> resourceFetcherFactory;
-
     public IAMRoleResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -56,7 +54,7 @@ public class IAMRoleResourceTerminator extends ResourceTerminator<IAMRoleResourc
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date endDate = new Date();
-        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage)); //TODO: make this configurable...
+        Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage));
 
         ResourceFetcher<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
         Set<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
@@ -136,13 +134,5 @@ public class IAMRoleResourceTerminator extends ResourceTerminator<IAMRoleResourc
 
     void setFetchResourceFactory(ResourceFetcherFactory<IAMRoleResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<IAMRoleResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

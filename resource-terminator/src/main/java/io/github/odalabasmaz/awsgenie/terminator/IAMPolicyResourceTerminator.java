@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
 public class IAMPolicyResourceTerminator extends ResourceTerminator<IAMPolicyResource> {
     private static final Logger LOGGER = LogManager.getLogger(IAMPolicyResourceTerminator.class);
 
-    private ResourceFetcherFactory<IAMPolicyResource> resourceFetcherFactory;
-
     public IAMPolicyResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -108,14 +106,5 @@ public class IAMPolicyResourceTerminator extends ResourceTerminator<IAMPolicyRes
 
     void setFetchResourceFactory(ResourceFetcherFactory<IAMPolicyResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    //TODO: we can centralize these functions which are same for all services..
-    private ResourceFetcherFactory<IAMPolicyResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }
