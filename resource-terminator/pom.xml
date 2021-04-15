@@ -13,6 +13,10 @@
     <artifactId>resource-terminator</artifactId>
     <version>0.1.2-SNAPSHOT</version>
 
+    <properties>
+        <resource-fetcher.version>0.1.1</resource-fetcher.version>
+    </properties>
+
     <dependencies>
         <!-- AWS Dependencies -->
         <dependency>
@@ -64,7 +68,6 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.beust</groupId>
             <artifactId>jcommander</artifactId>
