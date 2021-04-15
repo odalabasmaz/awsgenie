@@ -10,10 +10,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * @author Orhun Dalabasmaz
- * @version 10.03.2021
+ * Checks resources in AWS account, and if you allow deletes them.
+ *
+ * @param <R> Resource type. Check child classes of {@link io.github.odalabasmaz.awsgenie.fetcher.Resource} class
+ *            to see supported resource types.
  */
-
 public abstract class ResourceTerminator<R extends Resource> {
     private final AWSClientConfiguration configuration;
 
