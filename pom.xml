@@ -61,7 +61,6 @@
     </distributionManagement>
 
     <properties>
-        <skipDeployment>false</skipDeployment>
         <aws.version>1.11.998</aws.version>
         <log4j.version>2.14.1</log4j.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
@@ -69,7 +68,7 @@
         <jackson-databind.version>2.12.3</jackson-databind.version>
         <jackson.version>2.12.3</jackson.version>
         <!-- Test -->
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <mockito-core.version>2.23.0</mockito-core.version>
         <powermock.version>2.0.2</powermock.version>
     </properties>
