@@ -7,14 +7,14 @@
     <parent>
         <groupId>io.github.odalabasmaz.awsgenie</groupId>
         <artifactId>awsgenie</artifactId>
-        <version>0.1.2-SNAPSHOT</version>
+        <version>0.1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>resource-terminator</artifactId>
-    <version>0.1.2-SNAPSHOT</version>
+    <version>0.1.3-SNAPSHOT</version>
 
     <properties>
-        <resource-fetcher.version>0.1.1</resource-fetcher.version>
+        <resource-fetcher.version>0.1.2</resource-fetcher.version>
     </properties>
 
     <dependencies>
