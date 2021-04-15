@@ -17,10 +17,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -104,7 +101,7 @@ public class DynamoDBResourceFetcherTest {
         tables.add("table1");
         tables.add("table2");
 
-        List<DynamoDBResource> actualDynamoDBResources = dynamodbResourceFetcher.fetchResources(TEST_REGION, tables, details);
+        Set<DynamoDBResource> actualDynamoDBResources = dynamodbResourceFetcher.fetchResources(TEST_REGION, tables, details);
 
         verify(dynamoDBClient).describeTable("table1");
         verify(dynamoDBClient).describeTable("table2");

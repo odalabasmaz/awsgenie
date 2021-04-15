@@ -17,10 +17,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -139,7 +136,7 @@ public class IAMRoleResourceFetcherTest {
         resources.add("role2");
         resources.add("role3");
         List<String> details = new ArrayList<>();
-        List<IAMRoleResource> actualResources = IAMRoleResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<IAMRoleResource> actualResources = IAMRoleResourceFetcher.fetchResources(TEST_REGION, resources, details);
 
         verify(iamClient, times(3)).getRole(org.mockito.Mockito.any(GetRoleRequest.class));
         verify(iamClient, times(2)).listRolePolicies(org.mockito.Mockito.any(ListRolePoliciesRequest.class));

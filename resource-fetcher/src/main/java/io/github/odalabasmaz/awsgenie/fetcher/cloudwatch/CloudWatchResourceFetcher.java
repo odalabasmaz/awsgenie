@@ -9,9 +9,9 @@ import io.github.odalabasmaz.awsgenie.fetcher.ResourceFetcherConfiguration;
 import io.github.odalabasmaz.awsgenie.fetcher.ResourceFetcherWithProvider;
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -29,7 +29,7 @@ public class CloudWatchResourceFetcher extends ResourceFetcherWithProvider imple
 
 
     @Override
-    public List<CloudWatchResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<CloudWatchResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
         // Resources to be removed
@@ -47,7 +47,7 @@ public class CloudWatchResourceFetcher extends ResourceFetcherWithProvider imple
             nextToken = result.getNextToken();
         } while (nextToken != null);
 
-        List<CloudWatchResource> cloudWatchResourceList = new ArrayList<>();
+        Set<CloudWatchResource> cloudWatchResourceList = new LinkedHashSet<>();
         for (String cloudwatchAlarmToDelete : cloudwatchAlarmsToDelete) {
             cloudWatchResourceList.add(new CloudWatchResource().setResourceName(cloudwatchAlarmToDelete));
         }

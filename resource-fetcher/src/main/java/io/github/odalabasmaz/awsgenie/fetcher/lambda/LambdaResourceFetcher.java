@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -36,7 +37,7 @@ public class LambdaResourceFetcher extends ResourceFetcherWithProvider implement
     }
 
     @Override
-    public List<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<LambdaResource> fetchResources(String region, List<String> resources, List<String> details) {
         // check triggers (sns, sqs, dynamodb stream)
         AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
         AWSLambda lambdaClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonLambda();
@@ -44,7 +45,7 @@ public class LambdaResourceFetcher extends ResourceFetcherWithProvider implement
         AmazonCloudWatchEvents cloudWatchEventsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatchEvents();
 
         // Resources to be removed
-        List<LambdaResource> lambdaResourceList = new ArrayList<>();
+        Set<LambdaResource> lambdaResourceList = new LinkedHashSet<>();
 
         // process each lambda
         for (String lambdaName : resources) {

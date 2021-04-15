@@ -14,7 +14,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -41,12 +43,13 @@ public class IAMRoleResourceTerminatorTest extends TerminatorTest {
         add("role3");
     }};
 
-    private static final List<Resource> TEST_FETCHED_RESOURCES = new ArrayList<Resource>() {{
+    private static final Set<Resource> TEST_FETCHED_RESOURCES = new LinkedHashSet<Resource>() {{
         add(new IAMRoleResource()
                 .setResourceName(ROLE_1));
         add(new IAMRoleResource()
                 .setResourceName(ROLE_2));
     }};
+
     @Mock
     private BeforeTerminateInterceptor beforeTerminateInterceptor;
 
@@ -93,10 +96,15 @@ public class IAMRoleResourceTerminatorTest extends TerminatorTest {
 
     @Test
     public void interceptorsAreCalled() throws Exception {
+        Set<Resource> deletableResources = new LinkedHashSet<Resource>() {{
+            add(new IAMRoleResource()
+                    .setResourceName(ROLE_1));
+        }};
+
         InterceptorRegistry.addInterceptor(beforeTerminateInterceptor);
         InterceptorRegistry.addInterceptor(afterTerminateInterceptor);
         iamRoleResourceTerminator.terminateResource(TEST_REGION, service, TEST_RESOURCES, TEST_TICKET, false);
-        verify(beforeTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
-        verify(afterTerminateInterceptor).intercept(eq(service), eq(TEST_FETCHED_RESOURCES), any(String.class), eq(false));
+        verify(beforeTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
+        verify(afterTerminateInterceptor).intercept(eq(service), eq(deletableResources), eq(false));
     }
 }

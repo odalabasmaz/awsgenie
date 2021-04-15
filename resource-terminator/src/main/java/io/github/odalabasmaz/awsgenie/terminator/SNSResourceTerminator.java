@@ -12,21 +12,18 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import io.github.odalabasmaz.awsgenie.fetcher.sns.SNSResource;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
-import io.github.odalabasmaz.awsgenie.terminator.interceptor.InterceptorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Celal Emre CICEK
  * @version 6.04.2021
  */
 
-public class SNSResourceTerminator extends ResourceTerminatorWithProvider implements ResourceTerminator<SNSResource> {
+public class SNSResourceTerminator extends ResourceTerminator<SNSResource> {
     private static final Logger LOGGER = LogManager.getLogger(SNSResourceTerminator.class);
 
     private ResourceFetcherFactory<SNSResource> resourceFetcherFactory;
@@ -36,29 +33,24 @@ public class SNSResourceTerminator extends ResourceTerminatorWithProvider implem
     }
 
     @Override
-    public void terminateResource(Configuration conf, boolean apply) throws Exception {
-        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+    public Set<SNSResource> beforeApply(Configuration conf, boolean apply) throws Exception {
+        return beforeApply(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
                 conf.getLastUsage(), conf.isForce(), apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        terminateResource(region, service, resources, ticket, 7, false, apply);
+    protected Set<SNSResource> beforeApply(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        return beforeApply(region, service, resources, ticket, 7, false, apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
-        AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
-
-        AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
-
-        HashSet<String> topicsToDelete = new LinkedHashSet<>();
-        HashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
-
+    protected Set<SNSResource> beforeApply(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
+        Set<SNSResource> topicsToDelete = new LinkedHashSet<>();
+        Set<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
         ResourceFetcher<SNSResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
+        Set<SNSResource> snsResourceList = fetcher.fetchResources(region, resources, details);
 
         for (SNSResource snsResource : snsResourceList) {
             String topicName = snsResource.getResourceName();
@@ -73,7 +65,7 @@ public class SNSResourceTerminator extends ResourceTerminatorWithProvider implem
                     continue;
                 }
             }
-            topicsToDelete.add(topicName);
+            topicsToDelete.add(snsResource);
             cloudwatchAlarmsToDelete.addAll(snsResource.getCloudwatchAlarms());
         }
 
@@ -87,10 +79,25 @@ public class SNSResourceTerminator extends ResourceTerminatorWithProvider implem
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
-        InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, snsResourceList, info.toString(), apply));
+        return topicsToDelete;
+    }
 
-        if (apply) {
+    @Override
+    protected void apply(Set<SNSResource> resources, boolean apply) {
+        if (!resources.isEmpty() && apply) {
+            AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
+            AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
+            HashSet<String> cloudwatchAlarmsToDelete = new LinkedHashSet<>();
+
+            List<String> topicsToDelete = resources
+                    .stream()
+                    .map(SNSResource::getResourceName)
+                    .collect(Collectors.toList());
+            resources
+                    .stream()
+                    .map(SNSResource::getCloudwatchAlarms)
+                    .forEach(cloudwatchAlarmsToDelete::addAll);
+
             LOGGER.info("Terminating the resources...");
 
             topicsToDelete.forEach(snsClient::deleteTopic);
@@ -99,10 +106,10 @@ public class SNSResourceTerminator extends ResourceTerminatorWithProvider implem
                 cloudWatchClient.deleteAlarms(new DeleteAlarmsRequest().withAlarmNames(cloudwatchAlarmsToDelete));
             }
         }
+    }
 
-        InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, snsResourceList, info.toString(), apply));
-
+    @Override
+    protected void afterApply(Set<SNSResource> resources) {
         LOGGER.info("Succeed.");
     }
 

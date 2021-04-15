@@ -17,10 +17,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -131,7 +128,7 @@ public class SNSResourceFetcherTest {
         resources.add("topic3");
         List<String> details = new ArrayList<>();
 
-        List<SNSResource> actualResources = SNSResourceFetcher.fetchResources(TEST_REGION, resources, details);
+        Set<SNSResource> actualResources = SNSResourceFetcher.fetchResources(TEST_REGION, resources, details);
         assertThat(actualResources.size(), is(equalTo(2)));
         assertThat(actualResources, hasItem(new SNSResource()
                 .setResourceName(topicArn1)

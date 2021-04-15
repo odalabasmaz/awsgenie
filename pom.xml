@@ -7,7 +7,7 @@
 
     <groupId>io.github.odalabasmaz.awsgenie</groupId>
     <artifactId>awsgenie</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
 
     <licenses>
         <license>

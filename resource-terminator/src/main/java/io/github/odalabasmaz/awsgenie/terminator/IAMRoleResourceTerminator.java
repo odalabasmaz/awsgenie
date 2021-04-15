@@ -14,15 +14,11 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import io.github.odalabasmaz.awsgenie.fetcher.iam.IAMEntity;
 import io.github.odalabasmaz.awsgenie.fetcher.iam.IAMRoleResource;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
-import io.github.odalabasmaz.awsgenie.terminator.interceptor.InterceptorRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -32,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * Details: Required permissions: iam:ListRoles, iam:DeleteRole
  * TODO: add more...
  */
-public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider implements ResourceTerminator<IAMRoleResource> {
+public class IAMRoleResourceTerminator extends ResourceTerminator<IAMRoleResource> {
     private static final Logger LOGGER = LogManager.getLogger(IAMRoleResourceTerminator.class);
 
     private ResourceFetcherFactory<IAMRoleResource> resourceFetcherFactory;
@@ -42,25 +38,20 @@ public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider im
     }
 
     @Override
-    public void terminateResource(Configuration conf, boolean apply) throws Exception {
-        terminateResource(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
+    public Set<IAMRoleResource> beforeApply(Configuration conf, boolean apply) throws Exception {
+        return beforeApply(conf.getRegion(), Service.fromValue(conf.getService()), conf.getResourcesAsList(), conf.getDescription(),
                 conf.getLastUsage(), conf.isForce(), apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
-        terminateResource(region, service, resources, ticket, 7, false, apply);
+    protected Set<IAMRoleResource> beforeApply(String region, Service service, List<String> resources, String ticket, boolean apply) throws Exception {
+        return beforeApply(region, service, resources, ticket, 7, false, apply);
     }
 
     @Override
-    public void terminateResource(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
-        AmazonIdentityManagement iamClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonIAM();
-
+    protected Set<IAMRoleResource> beforeApply(String region, Service service, List<String> resources, String ticket, int lastUsage, boolean force, boolean apply) throws Exception {
         // Resources to be removed
-        LinkedHashSet<String> rolesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<IAMEntity> inlinePoliciesToDelete = new LinkedHashSet<>();
-        LinkedHashSet<IAMEntity> instanceProfilesToDetach = new LinkedHashSet<>();
-        LinkedHashSet<IAMEntity> policiesToDetach = new LinkedHashSet<>();
+        Set<IAMRoleResource> rolesToDelete = new LinkedHashSet<>();
         List<String> details = new LinkedList<>();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -68,7 +59,7 @@ public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider im
         Date referenceDate = new Date(endDate.getTime() - TimeUnit.DAYS.toMillis(lastUsage)); //TODO: make this configurable...
 
         ResourceFetcher<IAMRoleResource> fetcher = getFetchResourceFactory().getFetcher(service, new ResourceFetcherConfiguration(getConfiguration()));
-        List<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
+        Set<IAMRoleResource> iamRoleResourceList = fetcher.fetchResources(region, resources, details);
 
         for (IAMRoleResource iamRoleResource : iamRoleResourceList) {
             String roleName = iamRoleResource.getResourceName();
@@ -84,19 +75,7 @@ public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider im
                 }
             }
             details.add("IAM Role will be deleted: " + roleName);
-            rolesToDelete.add(roleName);
-
-            LinkedHashSet<IAMEntity> inlinePolicyNames = iamRoleResource.getInlinePolicies();
-            details.add("-- Inline policies will be deleted: " + inlinePolicyNames);
-            inlinePoliciesToDelete.addAll(inlinePolicyNames);
-
-            LinkedHashSet<IAMEntity> instanceProfiles = iamRoleResource.getInstanceProfiles();
-            details.add("-- Instance profiles will be detached: " + instanceProfiles);
-            instanceProfilesToDetach.addAll(instanceProfiles);
-
-            LinkedHashSet<IAMEntity> attachedPolicies = iamRoleResource.getAttachedPolicies();
-            details.add("-- Attached profiles will be detached: " + attachedPolicies);
-            policiesToDetach.addAll(attachedPolicies);
+            rolesToDelete.add(iamRoleResource);
         }
 
         StringBuilder info = new StringBuilder()
@@ -108,20 +87,50 @@ public class IAMRoleResourceTerminator extends ResourceTerminatorWithProvider im
         details.forEach(d -> info.append("-- ").append(d).append("\n"));
         LOGGER.info(info);
 
-        InterceptorRegistry.getBeforeTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
+        return rolesToDelete;
+    }
 
-        if (apply) {
+    @Override
+    protected void apply(Set<IAMRoleResource> resources, boolean apply) {
+        List<String> details = new ArrayList<>();
+        Set<String> rolesToDelete = new LinkedHashSet<>();
+        Set<IAMEntity> inlinePoliciesToDelete = new LinkedHashSet<>();
+        Set<IAMEntity> instanceProfilesToDetach = new LinkedHashSet<>();
+        Set<IAMEntity> policiesToDetach = new LinkedHashSet<>();
+
+        resources.forEach(resource -> {
+            rolesToDelete.add(resource.getResourceName());
+
+            LinkedHashSet<IAMEntity> inlinePolicyNames = resource.getInlinePolicies();
+            details.add("-- Inline policies will be deleted: " + inlinePolicyNames);
+            inlinePoliciesToDelete.addAll(inlinePolicyNames);
+
+            LinkedHashSet<IAMEntity> instanceProfiles = resource.getInstanceProfiles();
+            details.add("-- Instance profiles will be detached: " + instanceProfiles);
+            instanceProfilesToDetach.addAll(instanceProfiles);
+
+            LinkedHashSet<IAMEntity> attachedPolicies = resource.getAttachedPolicies();
+            details.add("-- Attached profiles will be detached: " + attachedPolicies);
+            policiesToDetach.addAll(attachedPolicies);
+        });
+
+        StringBuilder info = new StringBuilder();
+        details.forEach(d -> info.append("-- ").append(d).append("\n"));
+        LOGGER.info(info);
+
+        if (!resources.isEmpty() && apply) {
+            AmazonIdentityManagement iamClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonIAM();
+
             LOGGER.info("Terminating the resources...");
             inlinePoliciesToDelete.forEach(p -> iamClient.deleteRolePolicy(new DeleteRolePolicyRequest().withRoleName(p.getRoleName()).withPolicyName(p.getEntityName())));
             instanceProfilesToDetach.forEach(p -> iamClient.removeRoleFromInstanceProfile(new RemoveRoleFromInstanceProfileRequest().withRoleName(p.getRoleName()).withInstanceProfileName(p.getEntityName())));
             policiesToDetach.forEach(p -> iamClient.detachRolePolicy(new DetachRolePolicyRequest().withRoleName(p.getRoleName()).withPolicyArn(p.getEntityName())));
             rolesToDelete.forEach(r -> iamClient.deleteRole(new DeleteRoleRequest().withRoleName(r)));
         }
+    }
 
-        InterceptorRegistry.getAfterTerminateInterceptors()
-                .forEach(interceptor -> interceptor.intercept(service, iamRoleResourceList, info.toString(), apply));
-
+    @Override
+    protected void afterApply(Set<IAMRoleResource> resources) {
         LOGGER.info("Succeed.");
     }
 

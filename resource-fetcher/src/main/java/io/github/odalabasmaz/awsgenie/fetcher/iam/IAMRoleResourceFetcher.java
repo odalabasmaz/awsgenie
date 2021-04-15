@@ -9,8 +9,9 @@ import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -46,10 +47,10 @@ public class IAMRoleResourceFetcher extends ResourceFetcherWithProvider implemen
     }
 
     @Override
-    public List<IAMRoleResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<IAMRoleResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonIdentityManagement iamClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonIAM();
 
-        List<IAMRoleResource> iamRoleResourceList = new ArrayList<>();
+        Set<IAMRoleResource> iamRoleResourceList = new LinkedHashSet<>();
 
         for (String roleName : resources) {
             try {

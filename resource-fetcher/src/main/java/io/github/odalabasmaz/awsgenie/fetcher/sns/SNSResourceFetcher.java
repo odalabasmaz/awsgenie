@@ -75,11 +75,11 @@ public class SNSResourceFetcher extends ResourceFetcherWithProvider implements R
     }
 
     @Override
-    public List<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
+    public Set<SNSResource> fetchResources(String region, List<String> resources, List<String> details) {
         AmazonSNS snsClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonSNS();
         AmazonCloudWatch cloudWatchClient = AWSClientProvider.getInstance(getConfiguration()).getAmazonCloudWatch();
 
-        List<SNSResource> snsResourceList = new ArrayList<>();
+        Set<SNSResource> snsResourceList = new LinkedHashSet<>();
         Map<String, String> topics = new LinkedHashMap<>();
         String nextToken = null;
 

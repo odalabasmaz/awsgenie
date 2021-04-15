@@ -17,6 +17,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -88,7 +89,7 @@ public class CloudWatchResourceFetcherTest {
 
     @Test
     public void fetchResources() {
-        List<CloudWatchResource> actualAlarms = cloudwatchResourceFetcher.fetchResources(TEST_REGION, null, null);
+        Set<CloudWatchResource> actualAlarms = cloudwatchResourceFetcher.fetchResources(TEST_REGION, null, null);
 
         verify(cloudWatchClient, times(2)).describeAlarms(org.mockito.Mockito.any(DescribeAlarmsRequest.class));
         assertThat(actualAlarms.size(), is(equalTo(4)));
