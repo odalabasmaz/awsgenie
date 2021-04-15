@@ -6,18 +6,44 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.util.Objects;
 
 /**
- * @author Celal Emre CICEK
- * @version 6.04.2021
+ * Configuration class to get parameters from file.
  */
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FileConfiguration implements Configuration {
+    /**
+     * AWS region.
+     */
     private String region;
+
+    /**
+     * AWS service that has the resources to be deleted.
+     * For supported services please checkout {@link io.github.odalabasmaz.awsgenie.fetcher.Service}
+     */
     private String service;
+
+    /**
+     * Resource names to delete.
+     */
     private String resources;
+
+    /**
+     * Check last x days for the resource to determine if it's in use. Default 7 days.
+     */
     private int lastUsage = 7;
+
+    /**
+     * Optional description for your operation.
+     */
     private String description;
+
+    /**
+     * Optional role ARN to assume for the operation.
+     */
     private String assumeRoleArn;
+
+    /**
+     * Delete resource even if it's in use.
+     */
     private boolean force;
 
     @Override

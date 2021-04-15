@@ -1,8 +1,8 @@
 package io.github.odalabasmaz.awsgenie.terminator.configuration;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration;
 import io.github.odalabasmaz.awsgenie.terminator.exception.ConfigurationValidationException;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * @author Celal Emre CICEK
- * @version 6.04.2021
+ * Interface for supported configuration types.
+ * {@link ParameterConfiguration}
+ * {@link FileConfiguration}
  */
-
 public interface Configuration extends AWSClientConfiguration {
     String getRegion();
 

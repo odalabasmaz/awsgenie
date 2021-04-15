@@ -7,35 +7,51 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.util.Objects;
 
 /**
- * @author Orhun Dalabasmaz
- * @version 10.03.2021
+ * Configuration class to get parameters as program arguments from user.
  */
-
 public class ParameterConfiguration implements Configuration {
+    /**
+     * AWS region.
+     */
     @Parameter(names = {"--region", "-r"}, description = "AWS region")
     private String region;
 
+    /**
+     * AWS service that has the resources to be deleted.
+     * For supported services please checkout {@link io.github.odalabasmaz.awsgenie.fetcher.Service}
+     */
     @Parameter(names = {"--service", "-s"}, description = "AWS service name: sqs, lambda, dynamodb, cloudwatch, etc.")
     private String service;
 
+    /**
+     * Resource names to delete.
+     */
     @Parameter(names = {"--resources", "-res"}, description = "AWS resource names (semicolon-separated, whitespaces converted to +), ie. a;b+c;d")
     private String resources;
 
+    /**
+     * Optional description for your operation.
+     */
     @Parameter(names = {"--description", "-d"}, description = "Description")
     private String description;
 
+    /** Optional role ARN to assume for the operation. */
     @Parameter(names = {"--assume-role-arn", "-ara"}, description = "IAM Role ARN to assume")
     private String assumeRoleArn;
 
+    /** Dry-run or actually apply the delete operation. */
     @Parameter(names = {"--apply"}, description = "Apply the changes, dry-run by default")
     private boolean apply = false;
 
+    /** Delete resource even if it's in use. */
     @Parameter(names = {"--force"}, description = "Force applying the changes, even the usage confirmed")
     private boolean force = false;
 
+    /** Check last x days for the resource to determine if it's in use. Default 7 days. */
     @Parameter(names = {"--last-usage"}, description = "Check usage for the last 7 days by default")
     private int lastUsage = 7;
 
+    /** Get some of the parameters from a file. */
     @Parameter(names = {"--configuration-file", "-cf"}, description = "Use configuration file")
     private String configurationFile;
 
