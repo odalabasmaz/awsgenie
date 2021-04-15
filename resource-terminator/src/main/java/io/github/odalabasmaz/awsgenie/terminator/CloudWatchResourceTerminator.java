@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
 public class CloudWatchResourceTerminator extends ResourceTerminator<CloudWatchResource> {
     private static final Logger LOGGER = LogManager.getLogger(CloudWatchResourceTerminator.class);
 
-    private ResourceFetcherFactory<CloudWatchResource> resourceFetcherFactory;
-
     public CloudWatchResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -87,13 +85,5 @@ public class CloudWatchResourceTerminator extends ResourceTerminator<CloudWatchR
 
     void setFetchResourceFactory(ResourceFetcherFactory<CloudWatchResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<CloudWatchResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

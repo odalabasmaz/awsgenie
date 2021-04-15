@@ -30,8 +30,6 @@ import java.util.*;
 public class LambdaResourceTerminator extends ResourceTerminator<LambdaResource> {
     private static final Logger LOGGER = LogManager.getLogger(LambdaResourceTerminator.class);
 
-    private ResourceFetcherFactory<LambdaResource> resourceFetcherFactory;
-
     public LambdaResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -130,13 +128,5 @@ public class LambdaResourceTerminator extends ResourceTerminator<LambdaResource>
 
     void setFetchResourceFactory(ResourceFetcherFactory<LambdaResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<LambdaResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

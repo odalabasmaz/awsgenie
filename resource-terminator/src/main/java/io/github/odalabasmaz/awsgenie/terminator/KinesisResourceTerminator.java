@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 public class KinesisResourceTerminator extends ResourceTerminator<KinesisResource> {
     private static final Logger LOGGER = LogManager.getLogger(KinesisResourceTerminator.class);
 
-    private ResourceFetcherFactory<KinesisResource> resourceFetcherFactory;
-
     public KinesisResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -116,13 +114,5 @@ public class KinesisResourceTerminator extends ResourceTerminator<KinesisResourc
 
     void setFetchResourceFactory(ResourceFetcherFactory<KinesisResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<KinesisResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }

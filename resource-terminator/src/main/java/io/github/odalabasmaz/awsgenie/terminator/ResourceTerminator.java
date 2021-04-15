@@ -1,6 +1,7 @@
 package io.github.odalabasmaz.awsgenie.terminator;
 
 import io.github.odalabasmaz.awsgenie.fetcher.Resource;
+import io.github.odalabasmaz.awsgenie.fetcher.ResourceFetcherFactory;
 import io.github.odalabasmaz.awsgenie.fetcher.Service;
 import io.github.odalabasmaz.awsgenie.fetcher.credentials.AWSClientConfiguration;
 import io.github.odalabasmaz.awsgenie.terminator.configuration.Configuration;
@@ -17,6 +18,7 @@ import java.util.Set;
  */
 public abstract class ResourceTerminator<R extends Resource> {
     private final AWSClientConfiguration configuration;
+    protected ResourceFetcherFactory<R> resourceFetcherFactory;
 
     public ResourceTerminator(AWSClientConfiguration configuration) {
         this.configuration = configuration;
@@ -67,4 +69,12 @@ public abstract class ResourceTerminator<R extends Resource> {
     protected abstract void apply(Set<R> resources, boolean apply);
 
     protected abstract void afterApply(Set<R> resources);
+
+    protected ResourceFetcherFactory<R> getFetchResourceFactory() {
+        if (this.resourceFetcherFactory != null) {
+            return this.resourceFetcherFactory;
+        } else {
+            return new ResourceFetcherFactory<>();
+        }
+    }
 }

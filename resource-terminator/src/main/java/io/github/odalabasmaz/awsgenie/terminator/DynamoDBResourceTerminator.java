@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 public class DynamoDBResourceTerminator extends ResourceTerminator<DynamoDBResource> {
     private static final Logger LOGGER = LogManager.getLogger(DynamoDBResourceTerminator.class);
 
-    private ResourceFetcherFactory<DynamoDBResource> resourceFetcherFactory;
-
     public DynamoDBResourceTerminator(AWSClientConfiguration configuration) {
         super(configuration);
     }
@@ -117,13 +115,5 @@ public class DynamoDBResourceTerminator extends ResourceTerminator<DynamoDBResou
 
     void setFetchResourceFactory(ResourceFetcherFactory<DynamoDBResource> resourceFetcherFactory) {
         this.resourceFetcherFactory = resourceFetcherFactory;
-    }
-
-    private ResourceFetcherFactory<DynamoDBResource> getFetchResourceFactory() {
-        if (this.resourceFetcherFactory != null) {
-            return this.resourceFetcherFactory;
-        } else {
-            return new ResourceFetcherFactory<>();
-        }
     }
 }
